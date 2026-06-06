@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "630482464919",
+    "project_id": "pmos-care",
+    "storage_bucket": "pmos-care.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:630482464919:android:2b4e1d5497163186cd39d2",
+        "android_client_info": {
+          "package_name": "com.example.pmos_care"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNpkebD77eRlfWHQ5h1wxjjFhyHw4hjyc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

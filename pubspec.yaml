@@ -1,0 +1,59 @@
+name: pmos_care
+description: "PMOS Care: A mobile-first, offline-capable healthcare application for women in Cameroon living with PMOS."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.3.3
+
+  # Routing
+  go_router: ^17.2.3
+
+  # Firebase Core & SDKs
+  firebase_core: ^4.9.0
+  firebase_auth: ^6.5.1
+  cloud_firestore: ^6.4.1
+  firebase_storage: ^13.4.1
+  firebase_messaging: ^16.2.2
+
+  # Local Cache & Offline Stores
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.3
+  connectivity_plus: ^7.1.1
+
+  # Security & Biometrics
+  flutter_secure_storage: ^10.3.1
+  local_auth: ^3.0.1
+
+  # Utilities & Helpers
+  intl: ^0.20.2
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  # Code Generation
+  build_runner: ^2.4.11
+  riverpod_generator: ^2.4.0
+  freezed: ^2.5.2
+  json_serializable: ^6.8.0
+  hive_generator: ^2.0.1
+
+flutter:
+  uses-material-design: true
+  assets: []
