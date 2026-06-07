@@ -15,45 +15,50 @@ dependencies:
 
   # State Management
   flutter_riverpod: ^2.6.1
-  riverpod_annotation: ^2.3.3
 
   # Routing
-  go_router: ^17.2.3
+  go_router: ^14.6.2
 
   # Firebase Core & SDKs
-  firebase_core: ^4.9.0
-  firebase_auth: ^6.5.1
-  cloud_firestore: ^6.4.1
-  firebase_storage: ^13.4.1
-  firebase_messaging: ^16.2.2
+  firebase_core: ^3.8.1
+  firebase_auth: ^5.3.4
+  cloud_firestore: ^5.5.1
+  firebase_storage: ^12.3.7
+  firebase_messaging: ^15.1.5
 
   # Local Cache & Offline Stores
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  path_provider: ^2.1.3
-  connectivity_plus: ^7.1.1
+  path_provider: ^2.1.5
+  connectivity_plus: ^6.1.1
 
   # Security & Biometrics
-  flutter_secure_storage: ^10.3.1
-  local_auth: ^3.0.1
+  flutter_secure_storage: ^9.2.4
+  local_auth: ^2.3.0
 
-  # Utilities & Helpers
+  # Charts
+  fl_chart: ^0.69.0
+
+  # Notifications
+  flutter_local_notifications: ^18.0.1
+
+  # Preferences
+  shared_preferences: ^2.3.5
+
+  # PDF Generation & Sharing
+  pdf: ^3.11.3
+  share_plus: ^10.1.4
+  path: ^1.9.1
+
+  # Utilities
   intl: ^0.20.2
-  freezed_annotation: ^2.4.1
-  json_annotation: ^4.9.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
-
-  # Code Generation
-  build_runner: ^2.4.11
-  riverpod_generator: ^2.4.0
-  freezed: ^2.5.2
-  json_serializable: ^6.8.0
-  hive_generator: ^2.0.1
+  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true
-  assets: []
+  assets:
+    - assets/data/

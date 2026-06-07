@@ -1,0 +1,492 @@
+{
+  "foods": [
+    {
+      "id": "water_leaf",
+      "name": "Water Leaf",
+      "local_name": "Talinum triangulare",
+      "category": "leafy_vegetables",
+      "pmos_suitability": "Good",
+      "explanation": "Rich in iron and antioxidants. Reduces inflammation and supports hormonal balance."
+    },
+    {
+      "id": "bitter_leaf",
+      "name": "Bitter Leaf",
+      "local_name": "Vernonia amygdalina",
+      "category": "leafy_vegetables",
+      "pmos_suitability": "Good",
+      "explanation": "Anti-inflammatory properties. May help regulate blood sugar levels — beneficial for PMOS."
+    },
+    {
+      "id": "njama_njama",
+      "name": "Njama-Njama (Huckleberry)",
+      "local_name": "Solanum scabrum",
+      "category": "leafy_vegetables",
+      "pmos_suitability": "Good",
+      "explanation": "High in calcium and folate. Supports overall health and reduces oxidative stress."
+    },
+    {
+      "id": "garden_eggs",
+      "name": "Garden Eggs",
+      "local_name": "Solanum melongena",
+      "category": "leafy_vegetables",
+      "pmos_suitability": "Good",
+      "explanation": "Low calorie, high fibre. Supports gut health and blood sugar control."
+    },
+    {
+      "id": "okra",
+      "name": "Okra",
+      "local_name": "Abelmoschus esculentus",
+      "category": "leafy_vegetables",
+      "pmos_suitability": "Good",
+      "explanation": "High soluble fibre slows glucose absorption. Excellent for blood sugar management."
+    },
+    {
+      "id": "eru",
+      "name": "Eru (African Jointfir)",
+      "local_name": "Gnetum africanum",
+      "category": "leafy_vegetables",
+      "pmos_suitability": "Good",
+      "explanation": "Protein-rich leafy vegetable. Supports hormone production and muscle health."
+    },
+    {
+      "id": "okok",
+      "name": "Okok / Afang",
+      "local_name": "Gnetum africanum leaves",
+      "category": "leafy_vegetables",
+      "pmos_suitability": "Good",
+      "explanation": "Rich in minerals and protein. Reduces insulin resistance when eaten regularly."
+    },
+    {
+      "id": "unripe_plantain",
+      "name": "Unripe Plantain",
+      "local_name": "Musa paradisiaca",
+      "category": "starchy_staples",
+      "pmos_suitability": "Good",
+      "explanation": "Low glycaemic index. Releases energy slowly, helping to stabilise blood sugar for PMOS."
+    },
+    {
+      "id": "local_red_rice",
+      "name": "Local Red Rice",
+      "local_name": "Oryza sativa (red variety)",
+      "category": "starchy_staples",
+      "pmos_suitability": "Good",
+      "explanation": "Higher fibre and lower GI than white rice. Better blood sugar control for PMOS."
+    },
+    {
+      "id": "oat_fufu",
+      "name": "Oat-Based Fufu",
+      "local_name": "Fufu made with oats",
+      "category": "starchy_staples",
+      "pmos_suitability": "Good",
+      "explanation": "High beta-glucan fibre. Reduces blood sugar spikes and improves cholesterol."
+    },
+    {
+      "id": "plantain_fufu",
+      "name": "Plantain Fufu",
+      "local_name": "Unripe plantain fufu",
+      "category": "starchy_staples",
+      "pmos_suitability": "Good",
+      "explanation": "Made from unripe plantain, this fufu has a lower GI than cassava fufu."
+    },
+    {
+      "id": "cocoyam",
+      "name": "Cocoyam",
+      "local_name": "Colocasia esculenta",
+      "category": "starchy_staples",
+      "pmos_suitability": "Moderate",
+      "explanation": "Moderate starch content. Eat in smaller portions. Better than cassava for blood sugar."
+    },
+    {
+      "id": "irish_potato",
+      "name": "Irish Potato",
+      "local_name": "Solanum tuberosum",
+      "category": "starchy_staples",
+      "pmos_suitability": "Moderate",
+      "explanation": "Moderate glycaemic load. Boiled is better than fried. Eat with proteins and vegetables."
+    },
+    {
+      "id": "cassava_fufu",
+      "name": "Cassava Fufu",
+      "local_name": "Manihot esculenta",
+      "category": "starchy_staples",
+      "pmos_suitability": "Limit",
+      "explanation": "High GI starch. Causes rapid blood sugar spikes. Limit portions — try plantain fufu instead."
+    },
+    {
+      "id": "white_rice",
+      "name": "White Rice",
+      "local_name": "Oryza sativa",
+      "category": "starchy_staples",
+      "pmos_suitability": "Limit",
+      "explanation": "High GI. Switch to red or brown rice for better blood sugar control with PMOS."
+    },
+    {
+      "id": "garri",
+      "name": "Garri",
+      "local_name": "Fermented cassava",
+      "category": "starchy_staples",
+      "pmos_suitability": "Limit",
+      "explanation": "Very high GI when made into eba. Limit intake — causes rapid insulin spikes."
+    },
+    {
+      "id": "local_fish",
+      "name": "Local Fish (Mackerel, Tilapia)",
+      "local_name": "Scomber scombrus / Oreochromis",
+      "category": "proteins",
+      "pmos_suitability": "Good",
+      "explanation": "Omega-3 fatty acids reduce inflammation and improve insulin sensitivity in PMOS."
+    },
+    {
+      "id": "smoked_fish",
+      "name": "Smoked Fish (Canda)",
+      "local_name": "Smoked catfish / Clarias",
+      "category": "proteins",
+      "pmos_suitability": "Good",
+      "explanation": "Good protein source. Rich in omega-3. Use in soups to add flavour and nutrition."
+    },
+    {
+      "id": "beans",
+      "name": "Beans (Black-eyed, Red beans)",
+      "local_name": "Vigna unguiculata",
+      "category": "proteins",
+      "pmos_suitability": "Good",
+      "explanation": "High protein and fibre. Low GI — excellent for managing blood sugar in PMOS."
+    },
+    {
+      "id": "groundnuts",
+      "name": "Groundnuts (Peanuts)",
+      "local_name": "Arachis hypogaea",
+      "category": "proteins",
+      "pmos_suitability": "Good",
+      "explanation": "Healthy fats and protein. Moderate portions help reduce insulin resistance."
+    },
+    {
+      "id": "egusi",
+      "name": "Egusi (Melon Seeds)",
+      "local_name": "Citrullus lanatus seeds",
+      "category": "proteins",
+      "pmos_suitability": "Good",
+      "explanation": "Rich in healthy fats, protein, and zinc. Zinc supports hormonal balance in PMOS."
+    },
+    {
+      "id": "crayfish",
+      "name": "Crayfish",
+      "local_name": "Dried shrimp / Penaeidae",
+      "category": "proteins",
+      "pmos_suitability": "Good",
+      "explanation": "High protein condiment. Rich in iodine which supports thyroid function."
+    },
+    {
+      "id": "bush_mango_seeds",
+      "name": "Bush Mango Seeds (Dika)",
+      "local_name": "Irvingia gabonensis",
+      "category": "proteins",
+      "pmos_suitability": "Good",
+      "explanation": "Contains fibre that slows fat absorption. Used in Ogbono soup. Supports weight management."
+    },
+    {
+      "id": "chicken",
+      "name": "Chicken (lean, grilled)",
+      "local_name": "Gallus domesticus",
+      "category": "proteins",
+      "pmos_suitability": "Good",
+      "explanation": "Lean protein without saturated fat. Grilled or boiled chicken is best for PMOS."
+    },
+    {
+      "id": "eggs",
+      "name": "Eggs",
+      "local_name": "Hen eggs",
+      "category": "proteins",
+      "pmos_suitability": "Good",
+      "explanation": "Complete protein. Choline supports liver function which is important for hormone metabolism."
+    },
+    {
+      "id": "safou",
+      "name": "Safou (African Pear)",
+      "local_name": "Dacryodes edulis",
+      "category": "fruits",
+      "pmos_suitability": "Good",
+      "explanation": "Rich in oleic acid (healthy fat) and antioxidants. Anti-inflammatory benefits for PMOS."
+    },
+    {
+      "id": "avocado",
+      "name": "Avocado",
+      "local_name": "Persea americana",
+      "category": "fruits",
+      "pmos_suitability": "Good",
+      "explanation": "Healthy monounsaturated fats. Reduces inflammation and supports hormone production."
+    },
+    {
+      "id": "guava",
+      "name": "Guava",
+      "local_name": "Psidium guajava",
+      "category": "fruits",
+      "pmos_suitability": "Good",
+      "explanation": "High vitamin C and fibre. Low sugar content — safe for blood sugar management."
+    },
+    {
+      "id": "passion_fruit",
+      "name": "Passion Fruit (Grenadelle)",
+      "local_name": "Passiflora edulis",
+      "category": "fruits",
+      "pmos_suitability": "Good",
+      "explanation": "Low GI, high fibre. Supports digestion and steady blood sugar levels."
+    },
+    {
+      "id": "papaya",
+      "name": "Papaya (Pawpaw)",
+      "local_name": "Carica papaya",
+      "category": "fruits",
+      "pmos_suitability": "Good",
+      "explanation": "Contains papain enzyme for digestion. Rich in antioxidants — eat in moderate portions."
+    },
+    {
+      "id": "orange",
+      "name": "Orange",
+      "local_name": "Citrus sinensis",
+      "category": "fruits",
+      "pmos_suitability": "Moderate",
+      "explanation": "Good vitamin C source. Eat whole fruit, not juice, to get the fibre benefit."
+    },
+    {
+      "id": "mango",
+      "name": "Mango",
+      "local_name": "Mangifera indica",
+      "category": "fruits",
+      "pmos_suitability": "Moderate",
+      "explanation": "High in natural sugars. Limit to half a mango per serving. Rich in vitamins A and C."
+    },
+    {
+      "id": "pineapple",
+      "name": "Pineapple",
+      "local_name": "Ananas comosus",
+      "category": "fruits",
+      "pmos_suitability": "Moderate",
+      "explanation": "Higher sugar content. Eat small portions. Good source of manganese and bromelain."
+    },
+    {
+      "id": "banana",
+      "name": "Ripe Banana",
+      "local_name": "Musa acuminata",
+      "category": "fruits",
+      "pmos_suitability": "Limit",
+      "explanation": "High natural sugars. Limit ripe bananas. Unripe plantain is a much better alternative."
+    },
+    {
+      "id": "palm_oil",
+      "name": "Red Palm Oil",
+      "local_name": "Elaeis guineensis",
+      "category": "cooking_fats",
+      "pmos_suitability": "Moderate",
+      "explanation": "Rich in vitamin E and beta-carotene. Use in small amounts — high in saturated fat."
+    },
+    {
+      "id": "groundnut_oil",
+      "name": "Groundnut Oil",
+      "local_name": "Peanut oil",
+      "category": "cooking_fats",
+      "pmos_suitability": "Moderate",
+      "explanation": "Good for cooking at high temperatures. Use moderately — contains some saturated fat."
+    },
+    {
+      "id": "coconut_oil",
+      "name": "Coconut Oil",
+      "local_name": "Cocos nucifera oil",
+      "category": "cooking_fats",
+      "pmos_suitability": "Moderate",
+      "explanation": "Contains medium-chain fatty acids. Use sparingly due to high saturated fat content."
+    },
+    {
+      "id": "mbanga_soup",
+      "name": "Mbanga Soup (Palm Nut Soup)",
+      "local_name": "Palm kernel soup",
+      "category": "soups_stews",
+      "pmos_suitability": "Moderate",
+      "explanation": "Nutritious but high in palm oil. Eat with unripe plantain fufu instead of cassava fufu."
+    },
+    {
+      "id": "egusi_soup",
+      "name": "Egusi Soup",
+      "local_name": "Melon seed soup",
+      "category": "soups_stews",
+      "pmos_suitability": "Good",
+      "explanation": "Rich in protein and healthy fats from melon seeds. Excellent when loaded with leafy greens."
+    },
+    {
+      "id": "eru_soup",
+      "name": "Eru Soup",
+      "local_name": "Gnetum africanum soup",
+      "category": "soups_stews",
+      "pmos_suitability": "Good",
+      "explanation": "Very nutritious. High protein from eru leaves and waterleaf. Eat with unripe plantain."
+    },
+    {
+      "id": "ndole",
+      "name": "Ndolé",
+      "local_name": "Bitter leaf stew",
+      "category": "soups_stews",
+      "pmos_suitability": "Good",
+      "explanation": "National dish of Cameroon. Bitter leaf and groundnuts provide excellent nutrition for PMOS."
+    },
+    {
+      "id": "koki",
+      "name": "Koki (Bean Cake)",
+      "local_name": "Steamed bean pudding",
+      "category": "soups_stews",
+      "pmos_suitability": "Good",
+      "explanation": "Steamed bean cake — high protein, low GI. An excellent PMOS-friendly snack or side dish."
+    },
+    {
+      "id": "achu_soup",
+      "name": "Achu Soup",
+      "local_name": "Yellow soup with crayfish",
+      "category": "soups_stews",
+      "pmos_suitability": "Moderate",
+      "explanation": "Nutritious but high in palm oil. Eat with cocoyam fufu in moderate portions."
+    },
+    {
+      "id": "soya_milk",
+      "name": "Soya Milk",
+      "local_name": "Soya drink",
+      "category": "drinks",
+      "pmos_suitability": "Good",
+      "explanation": "Plant-based protein and calcium. Supports bone health. Choose unsweetened versions."
+    },
+    {
+      "id": "zobo",
+      "name": "Zobo (Hibiscus Tea)",
+      "local_name": "Hibiscus sabdariffa",
+      "category": "drinks",
+      "pmos_suitability": "Good",
+      "explanation": "Antioxidant-rich. May help lower blood pressure and reduce inflammation. Drink unsweetened."
+    },
+    {
+      "id": "ginger_tea",
+      "name": "Ginger Tea",
+      "local_name": "Zingiber officinale",
+      "category": "drinks",
+      "pmos_suitability": "Good",
+      "explanation": "Anti-inflammatory and may reduce menstrual pain. Drink regularly to ease PMOS symptoms."
+    },
+    {
+      "id": "soursop_leaves",
+      "name": "Soursop Leaf Tea",
+      "local_name": "Annona muricata leaves",
+      "category": "drinks",
+      "pmos_suitability": "Good",
+      "explanation": "Traditional anti-inflammatory tea. Supports immune function."
+    },
+    {
+      "id": "sweetened_drinks",
+      "name": "Soft Drinks / Sweetened Juices",
+      "local_name": "Sodas and sweetened beverages",
+      "category": "drinks",
+      "pmos_suitability": "Limit",
+      "explanation": "Very high sugar content. Causes rapid insulin spikes. Replace with water, zobo, or ginger tea."
+    },
+    {
+      "id": "roasted_corn",
+      "name": "Roasted Corn (Maize)",
+      "local_name": "Zea mays",
+      "category": "snacks",
+      "pmos_suitability": "Good",
+      "explanation": "Whole grain with fibre. Roasted corn has a lower GI than processed corn products."
+    },
+    {
+      "id": "roasted_groundnuts",
+      "name": "Roasted Groundnuts",
+      "local_name": "Arachis hypogaea",
+      "category": "snacks",
+      "pmos_suitability": "Good",
+      "explanation": "Healthy fats and protein. A handful between meals helps stabilise blood sugar."
+    },
+    {
+      "id": "garden_egg_salad",
+      "name": "Garden Egg Salad",
+      "local_name": "Local eggplant salad",
+      "category": "snacks",
+      "pmos_suitability": "Good",
+      "explanation": "Low calorie and high fibre. A great PMOS-friendly snack between meals."
+    },
+    {
+      "id": "biscuits",
+      "name": "Biscuits / Crackers",
+      "local_name": "Processed wheat biscuits",
+      "category": "snacks",
+      "pmos_suitability": "Limit",
+      "explanation": "Refined flour and high sugar. Replace with roasted groundnuts or boiled beans."
+    },
+    {
+      "id": "chin_chin",
+      "name": "Chin Chin",
+      "local_name": "Fried dough snack",
+      "category": "snacks",
+      "pmos_suitability": "Limit",
+      "explanation": "Deep-fried with high sugar. Causes insulin spikes. Eat very occasionally in small portions."
+    },
+    {
+      "id": "puff_puff",
+      "name": "Puff Puff",
+      "local_name": "Fried dough balls",
+      "category": "snacks",
+      "pmos_suitability": "Limit",
+      "explanation": "Deep-fried high-GI snack. Replace with koki or roasted corn for better blood sugar control."
+    },
+    {
+      "id": "cow_skin",
+      "name": "Cow Skin (Kanda)",
+      "local_name": "Boiled beef skin",
+      "category": "proteins",
+      "pmos_suitability": "Moderate",
+      "explanation": "High protein but also high in saturated fat. Eat occasionally in small portions."
+    },
+    {
+      "id": "bush_meat",
+      "name": "Bush Meat",
+      "local_name": "Wild game meat",
+      "category": "proteins",
+      "pmos_suitability": "Moderate",
+      "explanation": "Lean protein source. Preparation method matters — grilled or boiled is better than fried."
+    },
+    {
+      "id": "fufu_corn",
+      "name": "Fufu Corn",
+      "local_name": "Fermented maize fufu",
+      "category": "starchy_staples",
+      "pmos_suitability": "Moderate",
+      "explanation": "Traditional staple. Moderate GI. Pair with vegetable soups to slow glucose absorption."
+    },
+    {
+      "id": "boiled_yam",
+      "name": "Boiled Yam",
+      "local_name": "Dioscorea rotundata",
+      "category": "starchy_staples",
+      "pmos_suitability": "Moderate",
+      "explanation": "Moderate GI. Boiled yam is better than fried. Eat with proteins and vegetables."
+    },
+    {
+      "id": "borlotti_beans",
+      "name": "Borlotti / Kidney Beans",
+      "local_name": "Phaseolus vulgaris",
+      "category": "proteins",
+      "pmos_suitability": "Good",
+      "explanation": "Very high fibre and protein. Low GI — one of the best foods for PMOS blood sugar control."
+    },
+    {
+      "id": "lentils",
+      "name": "Lentils",
+      "local_name": "Lens culinaris",
+      "category": "proteins",
+      "pmos_suitability": "Good",
+      "explanation": "Excellent source of iron, protein, and folate. Low GI and anti-inflammatory."
+    },
+    {
+      "id": "moringa",
+      "name": "Moringa Leaves",
+      "local_name": "Moringa oleifera",
+      "category": "leafy_vegetables",
+      "pmos_suitability": "Good",
+      "explanation": "Extremely nutrient-dense. Rich in iron, calcium, and antioxidants. Supports hormonal balance."
+    }
+  ]
+}

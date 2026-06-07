@@ -1,0 +1,146 @@
+{
+  "sections": [
+    {
+      "id": "prioritise",
+      "title": "Foods to Prioritise",
+      "description": "These foods support hormonal balance, reduce inflammation, and help stabilise blood sugar — all key for managing PMOS.",
+      "cards": [
+        {
+          "id": "leafy_greens",
+          "title": "Eat More Leafy Greens",
+          "body": "Water leaf, bitter leaf, njama-njama, and moringa are packed with iron, folate, and antioxidants. Add at least one portion to every meal. These greens reduce the inflammation that makes PMOS worse.",
+          "food_examples": ["Water Leaf", "Bitter Leaf", "Njama-Njama", "Moringa"]
+        },
+        {
+          "id": "low_gi_starches",
+          "title": "Choose Low-GI Starches",
+          "body": "Unripe plantain, local red rice, and oat-based fufu release energy slowly. This prevents the blood sugar spikes that worsen insulin resistance — a key driver of PMOS symptoms.",
+          "food_examples": ["Unripe Plantain", "Red Rice", "Oat Fufu", "Plantain Fufu"]
+        },
+        {
+          "id": "beans_legumes",
+          "title": "Beans and Legumes Daily",
+          "body": "Beans, lentils, and groundnuts are high in fibre and protein. They keep you full, lower cholesterol, and stabilise blood sugar. Koki (bean cake) is a great PMOS-friendly snack.",
+          "food_examples": ["Beans", "Groundnuts", "Lentils", "Koki"]
+        },
+        {
+          "id": "oily_fish",
+          "title": "Oily Fish Twice a Week",
+          "body": "Mackerel, tilapia, and smoked fish (canda) contain omega-3 fatty acids that reduce inflammation. Omega-3 also improves insulin sensitivity, which is directly beneficial for PMOS.",
+          "food_examples": ["Mackerel", "Tilapia", "Smoked Fish (Canda)"]
+        },
+        {
+          "id": "safou_avocado",
+          "title": "Safou and Avocado for Healthy Fats",
+          "body": "Safou (African pear) and avocado provide monounsaturated fats that support hormone production. These healthy fats do not spike blood sugar and reduce systemic inflammation.",
+          "food_examples": ["Safou", "Avocado"]
+        }
+      ]
+    },
+    {
+      "id": "limit",
+      "title": "Foods to Limit",
+      "description": "These foods can worsen insulin resistance and inflammation. You do not need to remove them entirely — smaller portions and less frequent eating makes a real difference.",
+      "cards": [
+        {
+          "id": "cassava_white_rice",
+          "title": "Reduce Cassava Fufu and White Rice",
+          "body": "Cassava fufu and white rice have a high glycaemic index (GI). They cause rapid blood sugar spikes followed by crashes — this worsens insulin resistance in PMOS. Switch to unripe plantain fufu or red rice.",
+          "food_examples": ["Cassava Fufu", "White Rice", "Garri (Eba)"]
+        },
+        {
+          "id": "fried_foods",
+          "title": "Cut Back on Fried Foods",
+          "body": "Puff puff, chin chin, and fried plantain add a lot of unhealthy fat. Deep frying increases inflammation. Try boiling, grilling, or steaming instead — the flavour of Cameroonian food still shines.",
+          "food_examples": ["Puff Puff", "Chin Chin", "Fried Plantain"]
+        },
+        {
+          "id": "sugary_drinks",
+          "title": "Replace Sugary Drinks with Water or Herbal Teas",
+          "body": "Soft drinks and sweetened juices cause immediate insulin spikes and contribute to weight gain around the belly — a common PMOS symptom. Replace with water, zobo (hibiscus tea), or ginger tea.",
+          "food_examples": ["Soft Drinks", "Sweetened Juices", "Sugary Malt Drinks"]
+        },
+        {
+          "id": "processed_snacks",
+          "title": "Swap Processed Snacks",
+          "body": "Biscuits and packaged snacks are made from refined flour and added sugar. They spike blood sugar quickly. Swap them for roasted groundnuts, garden egg salad, or a handful of beans.",
+          "food_examples": ["Biscuits", "Packaged Crackers", "Sugary Cereal"]
+        }
+      ]
+    },
+    {
+      "id": "meal_ideas",
+      "title": "Simple Meal Ideas",
+      "description": "Quick Cameroonian meal combinations that are naturally balanced for PMOS management.",
+      "cards": [
+        {
+          "id": "breakfast_ideas",
+          "title": "PMOS-Friendly Breakfasts",
+          "body": "• Boiled eggs with roasted plantain and zobo tea\n• Oat porridge with guava and a handful of groundnuts\n• Beans and plantain (beans ndolé with unripe plantain)\n• Soya milk with a boiled sweet potato\n\nAvoid: Bread with jam, sweetened cereals, sugary tea.",
+          "food_examples": ["Boiled Eggs", "Unripe Plantain", "Oat Porridge", "Beans"]
+        },
+        {
+          "id": "lunch_ideas",
+          "title": "PMOS-Friendly Lunches",
+          "body": "• Unripe plantain fufu with egusi soup and smoked fish\n• Red rice with eru soup and crayfish\n• Ndolé with grilled chicken and boiled cocoyam\n• Koki with grilled fish and garden egg salad\n\nKey: always add plenty of leafy greens to your soup.",
+          "food_examples": ["Plantain Fufu", "Egusi Soup", "Eru Soup", "Ndolé"]
+        },
+        {
+          "id": "dinner_ideas",
+          "title": "PMOS-Friendly Dinners",
+          "body": "• Light eru soup with one cup of oat fufu\n• Grilled tilapia with steamed water leaf and boiled unripe plantain\n• Beans pepper soup with a small portion of boiled yam\n• Mbanga soup (small palm oil) with smoked fish and unripe plantain\n\nKeep dinner lighter than lunch if possible.",
+          "food_examples": ["Grilled Fish", "Beans Pepper Soup", "Steamed Vegetables"]
+        },
+        {
+          "id": "snack_ideas",
+          "title": "Smart Snacks Between Meals",
+          "body": "• A handful of roasted groundnuts\n• Garden egg with groundnut dip\n• Roasted corn with a glass of water\n• Koki (bean cake) — a filling, protein-rich snack\n• A cup of guava or passion fruit\n\nSnacking on protein and fibre prevents blood sugar dips that cause cravings.",
+          "food_examples": ["Groundnuts", "Garden Egg", "Roasted Corn", "Guava"]
+        }
+      ]
+    },
+    {
+      "id": "lifestyle",
+      "title": "General Lifestyle Tips",
+      "description": "Small daily habits that work alongside your diet to manage PMOS symptoms effectively.",
+      "cards": [
+        {
+          "id": "meal_timing",
+          "title": "Eat at Regular Times",
+          "body": "Try to eat breakfast, lunch, and dinner at roughly the same times each day. Skipping meals — especially breakfast — causes blood sugar drops that trigger insulin spikes when you eventually eat. Even a light breakfast helps regulate your hormones for the day.",
+          "food_examples": []
+        },
+        {
+          "id": "plate_method",
+          "title": "Use the Plate Method",
+          "body": "At each meal, aim for:\n• Half your plate: vegetables and leafy greens\n• One quarter: lean protein (fish, beans, eggs)\n• One quarter: low-GI starch (unripe plantain, red rice)\n\nThis simple guide naturally manages your blood sugar without counting anything.",
+          "food_examples": []
+        },
+        {
+          "id": "water_intake",
+          "title": "Drink 6–8 Glasses of Water Daily",
+          "body": "Water helps flush excess hormones from the body and supports kidney function. Start the day with a glass of warm water with ginger or lemon. Replace soft drinks with water, zobo, or herbal teas throughout the day.",
+          "food_examples": []
+        },
+        {
+          "id": "walking",
+          "title": "Walk for 30 Minutes Most Days",
+          "body": "Walking after meals is one of the most effective ways to lower blood sugar without medication. Even a 20-minute walk after lunch or dinner reduces post-meal glucose spikes. Aim for 150 minutes of moderate movement per week.",
+          "food_examples": []
+        },
+        {
+          "id": "stress_sleep",
+          "title": "Manage Stress and Sleep Well",
+          "body": "Chronic stress raises cortisol, which directly worsens insulin resistance and disrupts the menstrual cycle in PMOS. Aim for 7–8 hours of sleep. Simple practices like prayer, deep breathing, or a short walk outdoors in the evening can significantly reduce stress.",
+          "food_examples": []
+        },
+        {
+          "id": "cooking_methods",
+          "title": "Cook Smarter, Not Harder",
+          "body": "The way food is cooked matters:\n• Boil or steam starches instead of frying\n• Use palm oil sparingly — 1–2 tablespoons per pot of soup is enough\n• Add more vegetables to your soups to increase fibre and reduce the starch portion\n• Cook beans from scratch rather than from tins when possible",
+          "food_examples": []
+        }
+      ]
+    }
+  ]
+}

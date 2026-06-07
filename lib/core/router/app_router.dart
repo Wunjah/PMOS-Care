@@ -6,6 +6,7 @@ import '../../features/authentication/presentation/screens/login_screen.dart';
 import '../../features/authentication/presentation/screens/otp_verification_screen.dart';
 import '../../features/cycle_tracker/presentation/screens/calendar_screen.dart';
 import '../../features/symptoms/presentation/screens/symptom_history_screen.dart';
+import '../../features/diet/presentation/screens/diet_screen.dart';
 import '../theme/app_theme.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -243,12 +244,6 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-class DietScreen extends StatelessWidget {
-  const DietScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Diet & Nutrition GI Screen')));
 }
 
 class CoachScreen extends StatelessWidget {
