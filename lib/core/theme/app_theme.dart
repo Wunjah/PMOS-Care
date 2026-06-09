@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
-  static const Color primaryWellness = Color(0xFF165842); // HSL(162, 70%, 30%)
-  static const Color primaryLight = Color(0xFFE5F7F3);    // HSL(162, 40%, 94%)
-  static const Color brandActive = Color(0xFF2FB591);     // HSL(162, 60%, 46%)
+  static const Color primaryWellness = Color(0xFF4A55C4); // Indigo primary
+  static const Color primaryLight = Color(0xFFF0F1FA);    // Light indigo wash
+  static const Color brandActive = Color(0xFF5965E3);     // Active purple
 
   static const Color accentMenstrual = Color(0xFFEB505E); // HSL(355, 75%, 62%)
   static const Color accentRoseWash = Color(0xFFFDEBED);  // HSL(355, 80%, 95%)
@@ -33,7 +33,7 @@ class AppTheme {
         surface: Colors.white,
         error: glycemicHigh,
       ),
-      cardTheme: const CardThemeData(
+      cardTheme: const CardTheme(
         color: Colors.white,
         elevation: 1,
         margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -81,7 +81,7 @@ class AppTheme {
         surface: cardDark,
         error: glycemicHigh,
       ),
-      cardTheme: const CardThemeData(
+      cardTheme: const CardTheme(
         color: cardDark,
         elevation: 0,
         margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),

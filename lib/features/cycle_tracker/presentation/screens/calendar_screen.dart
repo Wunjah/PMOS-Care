@@ -171,9 +171,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     'Started ${_formatDate(log.startDate)}',
                     style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text(
-                    'Intensity: ${log.flowIntensity.name.toUpperCase()} • Pain Level: ${log.painLevel}/5',
-                    style: const TextStyle(fontFamily: 'Inter', fontSize: 12),
+                  subtitle: Builder(
+                    builder: (context) {
+                      final moodItem = log.symptoms.firstWhere(
+                        (s) => s.startsWith('mood:'),
+                        orElse: () => '',
+                      );
+                      final moodStr = moodItem.isNotEmpty ? moodItem.replaceFirst('mood:', '') : 'Normal';
+                      return Text(
+                        'Mood: $moodStr • Flow: ${log.flowIntensity.name.toUpperCase()} • Pain: ${log.painLevel}/5',
+                        style: const TextStyle(fontFamily: 'Inter', fontSize: 12),
+                      );
+                    }
                   ),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.grey),
@@ -223,7 +232,9 @@ class _LogCycleFormState extends State<_LogCycleForm> {
   FlowIntensity _flowIntensity = FlowIntensity.medium;
   int _painLevel = 2;
   final List<String> _selectedSymptoms = [];
+  String _selectedMood = '😊 Happy';
 
+  final List<String> _moodTags = ['😊 Happy', '😔 Sad', '😠 Irritated', '😰 Anxious', '⚡ Energetic', '😴 Tired'];
   final List<String> _symptomTags = ['Cramps', 'Acne', 'Bloating', 'Headache', 'Backache', 'Mood Swings', 'Fatigue'];
 
   @override
@@ -356,6 +367,29 @@ class _LogCycleFormState extends State<_LogCycleForm> {
             ),
             const SizedBox(height: 16),
 
+            const Text('Your Mood', style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _moodTags.map((mood) {
+                final isSelected = _selectedMood == mood;
+                return ChoiceChip(
+                  label: Text(mood),
+                  selected: isSelected,
+                  selectedColor: AppTheme.primaryLight,
+                  onSelected: (val) {
+                    if (val) {
+                      setState(() {
+                        _selectedMood = mood;
+                      });
+                    }
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+
             const Text('Symptoms Experienced', style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             Wrap(
@@ -384,7 +418,8 @@ class _LogCycleFormState extends State<_LogCycleForm> {
 
             ElevatedButton(
               onPressed: () {
-                widget.onSubmit(_startDate, _endDate, _flowIntensity, _painLevel, _selectedSymptoms);
+                final loggedSymptoms = [..._selectedSymptoms, 'mood:$_selectedMood'];
+                widget.onSubmit(_startDate, _endDate, _flowIntensity, _painLevel, loggedSymptoms);
               },
               child: const Text('Save Period Log'),
             ),

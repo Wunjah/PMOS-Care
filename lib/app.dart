@@ -36,7 +36,6 @@ class PMOSCareApp extends ConsumerWidget {
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
       ],
 
       // Display dynamic overlay banner when network drops

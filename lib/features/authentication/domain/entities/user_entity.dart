@@ -5,6 +5,21 @@ class UserEntity {
   final String displayName;
   final String? photoUrl;
   final bool isOnboardingCompleted;
+  
+  // Health Profile Fields
+  final int? age;
+  final double? heightCm;
+  final double? weightKg;
+  final String? country;
+  final String? region;
+  final String? pmosDiagnosisStatus;
+  final List<String> medications;
+  final List<String> allergies;
+  final List<String> goals;
+  
+  // Settings
+  final bool biometricLockEnabled;
+  final bool notificationsEnabled;
 
   const UserEntity({
     required this.uid,
@@ -13,6 +28,17 @@ class UserEntity {
     required this.displayName,
     this.photoUrl,
     required this.isOnboardingCompleted,
+    this.age,
+    this.heightCm,
+    this.weightKg,
+    this.country,
+    this.region,
+    this.pmosDiagnosisStatus,
+    this.medications = const [],
+    this.allergies = const [],
+    this.goals = const [],
+    this.biometricLockEnabled = false,
+    this.notificationsEnabled = false,
   });
 
   UserEntity copyWith({
@@ -22,6 +48,17 @@ class UserEntity {
     String? displayName,
     String? photoUrl,
     bool? isOnboardingCompleted,
+    int? age,
+    double? heightCm,
+    double? weightKg,
+    String? country,
+    String? region,
+    String? pmosDiagnosisStatus,
+    List<String>? medications,
+    List<String>? allergies,
+    List<String>? goals,
+    bool? biometricLockEnabled,
+    bool? notificationsEnabled,
   }) {
     return UserEntity(
       uid: uid ?? this.uid,
@@ -30,6 +67,18 @@ class UserEntity {
       displayName: displayName ?? this.displayName,
       photoUrl: photoUrl ?? this.photoUrl,
       isOnboardingCompleted: isOnboardingCompleted ?? this.isOnboardingCompleted,
+      age: age ?? this.age,
+      heightCm: heightCm ?? this.heightCm,
+      weightKg: weightKg ?? this.weightKg,
+      country: country ?? this.country,
+      region: region ?? this.region,
+      pmosDiagnosisStatus: pmosDiagnosisStatus ?? this.pmosDiagnosisStatus,
+      medications: medications ?? this.medications,
+      allergies: allergies ?? this.allergies,
+      goals: goals ?? this.goals,
+      biometricLockEnabled: biometricLockEnabled ?? this.biometricLockEnabled,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
     );
   }
 }
+

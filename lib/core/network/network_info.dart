@@ -7,8 +7,15 @@ enum NetworkStatus { online, offline }
 final networkStatusProvider = StreamProvider<NetworkStatus>((ref) {
   final connectivity = Connectivity();
 
-  return connectivity.onConnectivityChanged.map((results) {
-    final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
+  return connectivity.onConnectivityChanged.map((dynamic results) {
+    ConnectivityResult result;
+    if (results is List) {
+      result = results.isNotEmpty ? (results.first as ConnectivityResult) : ConnectivityResult.none;
+    } else if (results is ConnectivityResult) {
+      result = results;
+    } else {
+      result = ConnectivityResult.none;
+    }
     if (result == ConnectivityResult.none) {
       return NetworkStatus.offline;
     } else {
@@ -29,14 +36,26 @@ class NetworkInfoImpl implements NetworkInfo {
 
   @override
   Future<bool> get isConnected async {
-    final result = await _connectivity.checkConnectivity();
-    return result.isNotEmpty && result.first != ConnectivityResult.none;
+    final dynamic result = await _connectivity.checkConnectivity();
+    if (result is List) {
+      return result.isNotEmpty && result.first != ConnectivityResult.none;
+    } else if (result is ConnectivityResult) {
+      return result != ConnectivityResult.none;
+    }
+    return false;
   }
 
   @override
   Stream<NetworkStatus> get networkStatusStream {
-    return _connectivity.onConnectivityChanged.map((results) {
-      final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
+    return _connectivity.onConnectivityChanged.map((dynamic results) {
+      ConnectivityResult result;
+      if (results is List) {
+        result = results.isNotEmpty ? (results.first as ConnectivityResult) : ConnectivityResult.none;
+      } else if (results is ConnectivityResult) {
+        result = results;
+      } else {
+        result = ConnectivityResult.none;
+      }
       return result == ConnectivityResult.none ? NetworkStatus.offline : NetworkStatus.online;
     });
   }

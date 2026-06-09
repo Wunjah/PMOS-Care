@@ -50,6 +50,9 @@ class MockAuthRepository implements AuthRepository {
   Future<void> logout() async {
     logoutCalled = true;
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {

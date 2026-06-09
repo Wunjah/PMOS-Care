@@ -3,10 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../localization/translations.dart';
 import '../../features/authentication/presentation/screens/login_screen.dart';
+import '../../features/authentication/presentation/screens/signup_screen.dart';
 import '../../features/authentication/presentation/screens/otp_verification_screen.dart';
+import '../../features/authentication/presentation/screens/welcome_success_screen.dart';
+import '../../features/authentication/presentation/screens/health_profile_setup_screen.dart';
+import '../../features/authentication/presentation/screens/biometric_lock_screen.dart';
+import '../../features/authentication/presentation/screens/skin_profile_screen.dart';
+import '../../features/authentication/presentation/screens/connected_apps_screen.dart';
+import '../../features/authentication/presentation/providers/auth_provider.dart';
 import '../../features/cycle_tracker/presentation/screens/calendar_screen.dart';
 import '../../features/symptoms/presentation/screens/symptom_history_screen.dart';
+import '../../features/weight_tracker/presentation/screens/weight_history_screen.dart';
+import '../../features/activity_tracker/presentation/screens/activity_history_screen.dart';
+import '../../features/medication/presentation/screens/medication_schedule_screen.dart';
 import '../../features/diet/presentation/screens/diet_screen.dart';
+import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/education/presentation/screens/education_hub_screen.dart';
+import '../../features/providers/presentation/screens/specialist_directory_screen.dart';
+import '../../features/reports/presentation/screens/reports_hub_screen.dart';
 import '../theme/app_theme.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -26,16 +40,52 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
+        path: '/signup',
+        builder: (context, state) => const SignupScreen(),
+      ),
+      GoRoute(
         path: '/otp',
         builder: (context, state) => const OtpVerificationScreen(),
       ),
       GoRoute(
-        path: '/onboarding',
-        builder: (context, state) => const OnboardingScreen(),
+        path: '/welcome-success',
+        builder: (context, state) => const WelcomeSuccessScreen(),
+      ),
+      GoRoute(
+        path: '/health-profile',
+        builder: (context, state) => const HealthProfileSetupScreen(),
+      ),
+      GoRoute(
+        path: '/lock',
+        builder: (context, state) => const BiometricLockScreen(),
+      ),
+      GoRoute(
+        path: '/skin-profile',
+        builder: (context, state) => const SkinProfileScreen(),
+      ),
+      GoRoute(
+        path: '/connected-apps',
+        builder: (context, state) => const ConnectedAppsScreen(),
       ),
       GoRoute(
         path: '/symptoms',
         builder: (context, state) => const SymptomHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/weight',
+        builder: (context, state) => const WeightHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/activity',
+        builder: (context, state) => const ActivityHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/medication',
+        builder: (context, state) => const MedicationScheduleScreen(),
+      ),
+      GoRoute(
+        path: '/education',
+        builder: (context, state) => const EducationHubScreen(),
       ),
       ShellRoute(
         navigatorKey: shellNavigatorKey,
@@ -55,11 +105,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/coach',
-            builder: (context, state) => const CoachScreen(),
+            builder: (context, state) => const SpecialistDirectoryScreen(),
           ),
           GoRoute(
             path: '/reports',
-            builder: (context, state) => const ReportsScreen(),
+            builder: (context, state) => const ReportsHubScreen(),
           ),
         ],
       ),
@@ -67,16 +117,36 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends ConsumerState<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
     Future.delayed(const Duration(seconds: 2), () {
-      if (context.mounted) {
+      if (!mounted) return;
+      final authState = ref.read(authStateNotifierProvider);
+      if (authState is AuthAuthenticated) {
+        if (authState.user.biometricLockEnabled) {
+          context.go('/lock');
+        } else if (authState.user.isOnboardingCompleted) {
+          context.go('/home');
+        } else {
+          context.go('/welcome-success');
+        }
+      } else {
         context.go('/login');
       }
     });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(
         child: Column(
@@ -90,35 +160,6 @@ class SplashScreen extends StatelessWidget {
             ),
             SizedBox(height: 8),
             CircularProgressIndicator(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class OnboardingScreen extends StatelessWidget {
-  const OnboardingScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Setup Your Profile')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Welcome to PMOS Care\nLet\'s setup your health profile details.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: 'Inter', fontSize: 16),
-            ),
-            const SizedBox(height: 48),
-            ElevatedButton(
-              onPressed: () => context.go('/home'),
-              child: const Text('Start Application'),
-            ),
           ],
         ),
       ),
@@ -170,7 +211,7 @@ class AppShell extends ConsumerWidget {
           BottomNavigationBarItem(icon: const Icon(Icons.home_outlined), label: context.translate('nav_home')),
           BottomNavigationBarItem(icon: const Icon(Icons.calendar_month_outlined), label: context.translate('nav_calendar')),
           BottomNavigationBarItem(icon: const Icon(Icons.restaurant_outlined), label: context.translate('nav_diet')),
-          BottomNavigationBarItem(icon: const Icon(Icons.forum_outlined), label: context.translate('nav_coach')),
+          BottomNavigationBarItem(icon: const Icon(Icons.people_outline), label: context.translate('nav_coach')),
           BottomNavigationBarItem(icon: const Icon(Icons.analytics_outlined), label: context.translate('nav_reports')),
         ],
       ),
@@ -178,82 +219,3 @@ class AppShell extends ConsumerWidget {
   }
 }
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-  
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('PMOS Care Dashboard', style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold)),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Card(
-              color: AppTheme.primaryLight,
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Welcome to PMOS Care',
-                      style: TextStyle(fontFamily: 'Outfit', fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryWellness),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Track your menstrual cycles, log daily symptoms, check glycemic indexes of Cameroonian foods, and consult the AI Coach.',
-                      style: TextStyle(fontFamily: 'Inter', fontSize: 14),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.calendar_month),
-              label: const Text('Go to Cycle Tracker'),
-              onPressed: () => context.go('/calendar'),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.edit_note),
-              label: const Text('Go to Symptom Tracker'),
-              onPressed: () => context.push('/symptoms'),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Diet Tip of the Day',
-              style: TextStyle(fontFamily: 'Outfit', fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryWellness),
-            ),
-            const SizedBox(height: 8),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  context.translate('swap_suggestion'),
-                  style: const TextStyle(fontFamily: 'Inter', fontSize: 13, fontStyle: FontStyle.italic),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class CoachScreen extends StatelessWidget {
-  const CoachScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('AI Health Coach Chat Screen')));
-}
-
-class ReportsScreen extends StatelessWidget {
-  const ReportsScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Medical Reports & Lab Scanner Screen')));
-}

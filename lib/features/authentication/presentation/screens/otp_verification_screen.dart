@@ -45,7 +45,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         if (next.user.isOnboardingCompleted) {
           context.go('/home');
         } else {
-          context.go('/onboarding');
+          context.go('/welcome-success');
         }
       } else if (next is AuthError) {
         ScaffoldMessenger.of(context).showSnackBar(
