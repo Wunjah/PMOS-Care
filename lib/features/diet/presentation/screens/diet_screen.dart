@@ -30,12 +30,7 @@ class _DietScreenState extends ConsumerState<DietScreen>
     'snacks': 'Snacks',
   };
 
-  final List<Map<String, String>> _chatMessages = [
-    {
-      'role': 'assistant',
-      'message': 'Hello! Select a meal above or ask me how to prepare Cameroonian dishes to be low-glycemic and PMOS-friendly.'
-    }
-  ];
+  final List<Map<String, String>> _chatMessages = [];
   final _chatController = TextEditingController();
   String _selectedDish = 'Ndole';
   String _apiKey = '';
@@ -74,60 +69,79 @@ class _DietScreenState extends ConsumerState<DietScreen>
     },
   };
 
-  String _getLocalChefRAGResponse(String query) {
-    final queryLower = query.toLowerCase();
-    if (queryLower.contains('ndole')) {
-      return "To optimize Ndole: Use boiled skinless chicken or mackerel. Limit canola/olive oil to 1 tablespoon. Pair with boiled unripe plantain (excellent resistant starch) instead of white fufu.";
-    } else if (queryLower.contains('eru')) {
-      return "To optimize Eru: Cook waterleaf first to release natural moisture, then add Eru. Limit red palm oil significantly. Pair with fiber-rich oatmeal fufu (low glycemic index).";
-    } else if (queryLower.contains('achu')) {
-      return "To optimize Achu: Limit taro portion to 1 cup. Emulsify Achu yellow soup with very minimal palm oil. Pair with plenty of leafy greens (like warm garden eggs/cabbage) to slow carb absorption.";
-    } else if (queryLower.contains('fufu') || queryLower.contains('njama') || queryLower.contains('huckleberry')) {
-      return "For Fufu & Njama Njama: Swap high-GI cassava fufu with oatmeal fufu or plantain fufu. Steam the huckleberry leaves with minimal added oil. For detailed recipes, visit: https://www.cameroonweb.com/CameroonHomePage/food/";
-    } else if (queryLower.contains('rice') || queryLower.contains('stew')) {
-      return "For Rice & Stew: Always use local red rice or brown rice instead of white rice to lower the GI. Minimize cooking oil to 1-2 tablespoons. For recipes, see: https://www.cameroonweb.com/CameroonHomePage/food/";
-    } else if (queryLower.contains('cassava') || queryLower.contains('garri')) {
-      return "Cassava fufu and white garri have a high glycemic index (around 85) which can spike insulin. For PMOS, swap them for oatmeal fufu or plantain fufu made from unripe green plantains.";
-    }
-    
-    return "To optimize your Cameroonian meals for PMOS, focus on swapping high-GI carbohydrates (like cassava) with fiber-rich options like oatmeal fufu or boiled unripe green plantains, and use healthy oils sparingly. For more details on Cameroonian dishes, check the online database: https://www.cameroonweb.com/CameroonHomePage/food/";
-  }
-
   void _sendChatMessage() async {
     final query = _chatController.text.trim();
     if (query.isEmpty) return;
 
+    final userMsg = {'role': 'user', 'message': query};
+
     setState(() {
-      _chatMessages.add({'role': 'user', 'message': query});
+      _chatMessages.add(userMsg);
       _chatController.clear();
       _isAiTyping = true;
     });
 
-    String response = '';
-    if (_apiKey.isEmpty) {
-      response = _getLocalChefRAGResponse(query);
-    } else {
-      try {
-        const systemInstruction = 
-            "You are the PMOS Care AI Chef, specializing in optimizing traditional Cameroonian cuisine for women with PMOS/PCOS. "
-            "Focus on traditional Cameroonian dishes (Ndole, Eru, Achu, Rice & Stew, Fufu & Njama Njama, Koki, Mbanga). "
-            "Suggest swapping high-glycemic index staples (cassava fufu, white garri, white rice) with low-glycemic alternatives (boiled unripe plantain, oatmeal fufu, plantain fufu). "
-            "All recommendations and meal advices MUST focus on Cameroonian foods. If you do not have information about any dish or recipe, you MUST provide a link to the existing database of Cameroonian dishes online (such as https://www.cameroonweb.com/CameroonHomePage/food/ or a search engine query for Cameroon food recipes).";
+    final List<Map<String, dynamic>> geminiHistory = _chatMessages.map((msg) {
+      return {
+        'role': msg['role'] == 'user' ? 'user' : 'model',
+        'parts': [
+          {'text': msg['message'] ?? ''}
+        ]
+      };
+    }).toList();
 
-        response = await GeminiService().queryGemini(query, systemInstruction: systemInstruction);
-        if (response.isEmpty) {
-          response = "Google AI returned empty response.";
+    final assistantMsgIndex = _chatMessages.length;
+    setState(() {
+      _chatMessages.add({'role': 'assistant', 'message': ''});
+    });
+
+    const systemInstruction = 
+        "You are the PMOS Care AI Chef, specializing in optimizing traditional Cameroonian cuisine for women with PMOS/PCOS. "
+        "Focus on traditional Cameroonian dishes (Ndole, Eru, Achu, Rice & Stew, Fufu & Njama Njama, Koki, Mbanga). "
+        "Suggest swapping high-glycemic index staples (cassava fufu, white garri, white rice) with low-glycemic alternatives (boiled unripe plantain, oatmeal fufu, plantain fufu). "
+        "All recommendations and meal advices MUST focus on Cameroonian foods. If you do not have information about any dish or recipe, you MUST provide a link to the existing database of Cameroonian dishes online (such as https://www.cameroonweb.com/CameroonHomePage/food/ or a search engine query for Cameroon food recipes).";
+
+    StringBuffer accumulated = StringBuffer();
+    bool hasError = false;
+
+    try {
+      final stream = GeminiService().queryGeminiStream(
+        geminiHistory,
+        systemInstruction: systemInstruction,
+      );
+
+      await for (final token in stream) {
+        if (!mounted) return;
+        if (token == "Google AI is temporarily unavailable.") {
+          hasError = true;
+          accumulated.clear();
+          accumulated.write("Google AI is temporarily unavailable.");
+          break;
         }
-      } catch (e) {
-        response = "Error connecting to Google AI: $e";
+        accumulated.write(token);
+        setState(() {
+          _chatMessages[assistantMsgIndex]['message'] = accumulated.toString();
+          _isAiTyping = false;
+        });
       }
+    } catch (e) {
+      hasError = true;
+      accumulated.clear();
+      accumulated.write("Google AI is temporarily unavailable.");
     }
 
     if (!mounted) return;
-    setState(() {
-      _chatMessages.add({'role': 'assistant', 'message': response});
-      _isAiTyping = false;
-    });
+
+    if (hasError || accumulated.isEmpty) {
+      setState(() {
+        _chatMessages[assistantMsgIndex]['message'] = "Google AI is temporarily unavailable.";
+        _isAiTyping = false;
+      });
+    }
+
+    final messageId = 'msg_${DateTime.now().millisecondsSinceEpoch}';
+    final responseText = _chatMessages[assistantMsgIndex]['message'] ?? '';
+    debugPrint('[Gemini Verification Log] message_id: $messageId, timestamp: ${DateTime.now().toIso8601String()}, request_sent_to_gemini: $query, response_received_from_gemini: $responseText');
   }
 
   Future<void> _loadApiKey() async {

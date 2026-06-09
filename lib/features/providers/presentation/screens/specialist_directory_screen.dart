@@ -75,12 +75,7 @@ class _SpecialistDirectoryScreenState extends State<SpecialistDirectoryScreen>
 
   // Chatbot State
   final _aiTextController = TextEditingController();
-  final List<Map<String, String>> _chatMessages = [
-    {
-      'role': 'assistant',
-      'message': 'Welcome to PMOS Care AI Health Coach! I am here to help you understand hormone patterns, low-glycemic dietary choices in Cameroon, activity streaks, and clinical reminders. Ask me anything about PMOS management.'
-    }
-  ];
+  final List<Map<String, String>> _chatMessages = [];
   bool _isAiTyping = false;
 
   @override
@@ -113,26 +108,6 @@ class _SpecialistDirectoryScreenState extends State<SpecialistDirectoryScreen>
     });
   }
 
-  Future<String> _getGeminiResponse(String query) async {
-    if (_apiKey.isEmpty) {
-      return _getRAGResponse(query);
-    }
-
-    try {
-      const systemInstruction =
-          "You are the PMOS Care AI Health Coach, an expert educational support agent specializing in Polyendocrine Metabolic Ovarian Syndrome (PMOS) and PCOS for women in Cameroon. "
-          "Your task is to provide clinical-quality educational insights, focusing on low-glycemic dietary choices, weight/metabolic management, medication adherence (e.g. Metformin/Spironolactone), and cycle tracking. "
-          "All meal recommendations and dietary advice MUST focus exclusively on traditional Cameroonian cuisine (such as rice and stew, fufu and njama njama, eru, ndole, achu, etc.). "
-          "If you do not have specific information about a food item, dish, or request, or if the user asks for a broader database, you MUST provide a friendly suggestion to reference an existing database of Cameroonian dishes online (such as https://www.cameroonweb.com/CameroonHomePage/food/ or a search engine query for Cameroon food recipes). "
-          "Keep your tone supportive, clinical, and clear. Explicitly remind the user in each message that you are an educational support tool, not a doctor.";
-
-      final response = await GeminiService().queryGemini(query, systemInstruction: systemInstruction);
-      return response.isNotEmpty ? response : "Google AI returned empty response.";
-    } catch (e) {
-      return "Network error connecting to Google AI: $e";
-    }
-  }
-
   Future<void> _launchWhatsApp(String phone, String name) async {
     final message = "Hello $name, I am contacting you from PMOS Care regarding a consultation.";
     final url = Uri.parse("https://wa.me/${phone.replaceAll('+', '').replaceAll(' ', '')}?text=${Uri.encodeComponent(message)}");
@@ -155,18 +130,76 @@ class _SpecialistDirectoryScreenState extends State<SpecialistDirectoryScreen>
     final query = _aiTextController.text.trim();
     if (query.isEmpty) return;
 
+    final userMsg = {'role': 'user', 'message': query};
+    
     setState(() {
-      _chatMessages.add({'role': 'user', 'message': query});
+      _chatMessages.add(userMsg);
       _aiTextController.clear();
       _isAiTyping = true;
     });
 
-    final response = await _getGeminiResponse(query);
-    if (!mounted) return;
+    final List<Map<String, dynamic>> geminiHistory = _chatMessages.map((msg) {
+      return {
+        'role': msg['role'] == 'user' ? 'user' : 'model',
+        'parts': [
+          {'text': msg['message'] ?? ''}
+        ]
+      };
+    }).toList();
+
+    final assistantMsgIndex = _chatMessages.length;
     setState(() {
-      _chatMessages.add({'role': 'assistant', 'message': response});
-      _isAiTyping = false;
+      _chatMessages.add({'role': 'assistant', 'message': ''});
     });
+
+    const systemInstruction =
+        "You are the PMOS Care AI Health Coach, an expert educational support agent specializing in Polyendocrine Metabolic Ovarian Syndrome (PMOS) and PCOS for women in Cameroon. "
+        "Your task is to provide clinical-quality educational insights, focusing on low-glycemic dietary choices, weight/metabolic management, medication adherence (e.g. Metformin/Spironolactone), and cycle tracking. "
+        "All meal recommendations and dietary advice MUST focus exclusively on traditional Cameroonian cuisine (such as rice and stew, fufu and njama njama, eru, ndole, achu, etc.). "
+        "If you do not have specific information about a food item, dish, or request, or if the user asks for a broader database, you MUST provide a friendly suggestion to reference an existing database of Cameroonian dishes online (such as https://www.cameroonweb.com/CameroonHomePage/food/ or a search engine query for Cameroon food recipes). "
+        "Keep your tone supportive, clinical, and clear. Explicitly remind the user in each message that you are an educational support tool, not a doctor.";
+
+    StringBuffer accumulated = StringBuffer();
+    bool hasError = false;
+
+    try {
+      final stream = GeminiService().queryGeminiStream(
+        geminiHistory,
+        systemInstruction: systemInstruction,
+      );
+
+      await for (final token in stream) {
+        if (!mounted) return;
+        if (token == "Google AI is temporarily unavailable.") {
+          hasError = true;
+          accumulated.clear();
+          accumulated.write("Google AI is temporarily unavailable.");
+          break;
+        }
+        accumulated.write(token);
+        setState(() {
+          _chatMessages[assistantMsgIndex]['message'] = accumulated.toString();
+          _isAiTyping = false;
+        });
+      }
+    } catch (e) {
+      hasError = true;
+      accumulated.clear();
+      accumulated.write("Google AI is temporarily unavailable.");
+    }
+
+    if (!mounted) return;
+
+    if (hasError || accumulated.isEmpty) {
+      setState(() {
+        _chatMessages[assistantMsgIndex]['message'] = "Google AI is temporarily unavailable.";
+        _isAiTyping = false;
+      });
+    }
+
+    final messageId = 'msg_${DateTime.now().millisecondsSinceEpoch}';
+    final responseText = _chatMessages[assistantMsgIndex]['message'] ?? '';
+    debugPrint('[Gemini Verification Log] message_id: $messageId, timestamp: ${DateTime.now().toIso8601String()}, request_sent_to_gemini: $query, response_received_from_gemini: $responseText');
   }
 
   void _showApiKeyDialog() {
@@ -219,55 +252,6 @@ class _SpecialistDirectoryScreenState extends State<SpecialistDirectoryScreen>
         );
       },
     );
-  }
-
-  String _getRAGResponse(String query) {
-    final q = query.toLowerCase();
-
-    if (q.contains('metformin') ||
-        q.contains('spironolactone') ||
-        q.contains('medication') ||
-        q.contains('meds')) {
-      return "Metformin helps manage insulin resistance by increasing muscle sensitivity to insulin. Spironolactone targets high androgen levels, reducing severe acne and hirsutism. Always log your medication compliance daily on the Medication tab, and consult your Ob-Gyn for clinical prescriptions.";
-    }
-
-    if (q.contains('fufu') ||
-        q.contains('njama') ||
-        q.contains('eru') ||
-        q.contains('ndole') ||
-        q.contains('achu') ||
-        q.contains('stew') ||
-        q.contains('rice') ||
-        q.contains('cassava') ||
-        q.contains('plantain') ||
-        q.contains('staple') ||
-        q.contains('eating') ||
-        q.contains('carb') ||
-        q.contains('diet') ||
-        q.contains('food')) {
-      return "In Cameroon, traditional cassava fufu has a high Glycemic Index (~85) which spikes insulin and worsens PMOS. We highly recommend swapping it with boiled unripe green plantains or oatmeal/plantain fufu. For njama njama or eru, cook with minimal red palm oil. For rice and stew, use local red or brown rice instead of white rice. For more details on Cameroonian dishes and recipes, you can reference the online database: https://www.cameroonweb.com/CameroonHomePage/food/";
-    }
-
-    if (q.contains('hirsutism') ||
-        q.contains('hair') ||
-        q.contains('ferriman') ||
-        q.contains('fg')) {
-      return "Hirsutism is excess body/facial hair growth caused by high levels of circulating free androgens. Clinicians measure this using the Ferriman-Gallwey (FG) scale (0-36). Log your FG score in the Symptom tab to track improvements. Low-GI diets and medications like Spironolactone are typical approaches.";
-    }
-
-    if (q.contains('acne') || q.contains('skin') || q.contains('tags') || q.contains('acanthosis')) {
-      return "Acne, Acanthosis Nigricans (dark velvety skin patches), and skin tags are visual indicators of high insulin levels. Lowering dietary refined sugar and starchy carbs directly reduces skin flareups by improving glycemic control. Track these markers in the Symptom Logger daily.";
-    }
-
-    if (q.contains('exercise') || q.contains('workout') || q.contains('running') || q.contains('walking')) {
-      return "Aerobic exercises like walking and running, combined with home or gym strength workouts, help muscle cells take up glucose without needing excess insulin. This is a powerful natural way to reverse insulin resistance. Try keeping an active workout streak in the Activity Tracker!";
-    }
-
-    if (q.contains('bloating') || q.contains('pain') || q.contains('cramp')) {
-      return "Pelvic pain and abdominal bloating can be related to ovulation changes or hormonal imbalances in PCOS/PMOS. Track their severity (scale 1-5) on the Symptom Logger. Reducing processed foods and staying hydrated helps manage bloating. Severe, persistent pain warrants a visit to your Ob-Gyn.";
-    }
-
-    return "Hello! I can guide you on Cameroonian low-GI nutrition swaps (like fufu & njama njama, Ndole, Eru, and rice & stew), androgen excess symptoms, metabolic activities, and medication patterns. Note that I am an educational support assistant, not a doctor. For a full Cameroonian recipe database, visit: https://www.cameroonweb.com/CameroonHomePage/food/";
   }
 
   @override
