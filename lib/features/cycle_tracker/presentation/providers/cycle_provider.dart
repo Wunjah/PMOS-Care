@@ -142,6 +142,27 @@ class CycleNotifier extends StateNotifier<CycleState> {
     }
   }
 
+  Future<void> endActiveCycle(String cycleId, DateTime endDate) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final existing = state.cycles.firstWhere((c) => c.id == cycleId);
+      final updated = CycleEntity(
+        id: existing.id,
+        startDate: existing.startDate,
+        endDate: endDate,
+        flowIntensity: existing.flowIntensity,
+        painLevel: existing.painLevel,
+        symptoms: existing.symptoms,
+        isPredicted: false,
+        clientUpdatedTimestamp: DateTime.now(),
+      );
+      await _repository.updateCycle(updated);
+      await loadCycleLogs();
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: 'Failed to end cycle: $e');
+    }
+  }
+
   Future<void> removeCycleLog(String cycleId) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {

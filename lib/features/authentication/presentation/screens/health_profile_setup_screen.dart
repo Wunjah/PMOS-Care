@@ -157,6 +157,22 @@ class _HealthProfileSetupScreenState extends ConsumerState<HealthProfileSetupScr
           'Complete Health Profile',
           style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold, fontSize: 18),
         ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await ref.read(authStateNotifierProvider.notifier).completeOnboarding();
+              if (context.mounted) context.go('/home');
+            },
+            child: const Text(
+              'Skip',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryWellness,
+              ),
+            ),
+          ),
+        ],
         centerTitle: true,
       ),
       body: SafeArea(

@@ -5,6 +5,7 @@ import '../models/cycle_model.dart';
 abstract class CycleRemoteDataSource {
   Future<List<CycleModel>> getRemoteCycles();
   Future<void> saveRemoteCycle(CycleModel cycle);
+  Future<void> updateRemoteCycle(CycleModel cycle);
   Future<void> deleteRemoteCycle(String cycleId);
 }
 
@@ -39,6 +40,13 @@ class CycleRemoteDataSourceImpl implements CycleRemoteDataSource {
     final json = cycle.toJson();
     json['serverTimestamp'] = FieldValue.serverTimestamp();
     await _cycleCollection.doc(cycle.id).set(json);
+  }
+
+  @override
+  Future<void> updateRemoteCycle(CycleModel cycle) async {
+    final json = cycle.toJson();
+    json['serverTimestamp'] = FieldValue.serverTimestamp();
+    await _cycleCollection.doc(cycle.id).update(json);
   }
 
   @override

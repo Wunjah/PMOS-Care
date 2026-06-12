@@ -184,38 +184,39 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<UserEntity?> getCurrentUser() async {
+    final remoteUser = await remoteDataSource.getCurrentUser();
+    if (remoteUser == null) {
+      await localDataSource.clearCache();
+      return null;
+    }
+
     final cachedUser = await localDataSource.getCachedUser();
-    if (cachedUser != null) {
+    if (cachedUser != null && cachedUser.uid == remoteUser.uid) {
       return cachedUser;
     }
 
-    final remoteUser = await remoteDataSource.getCurrentUser();
-    if (remoteUser != null) {
-      final onboarding = await localDataSource.isOnboardingCompleted();
-      final finalUser = UserModel(
-        uid: remoteUser.uid,
-        phoneNumber: remoteUser.phoneNumber,
-        email: remoteUser.email,
-        displayName: remoteUser.displayName,
-        photoUrl: remoteUser.photoUrl,
-        isOnboardingCompleted: onboarding || remoteUser.isOnboardingCompleted,
-        age: remoteUser.age,
-        heightCm: remoteUser.heightCm,
-        weightKg: remoteUser.weightKg,
-        country: remoteUser.country,
-        region: remoteUser.region,
-        pmosDiagnosisStatus: remoteUser.pmosDiagnosisStatus,
-        medications: remoteUser.medications,
-        allergies: remoteUser.allergies,
-        goals: remoteUser.goals,
-        biometricLockEnabled: remoteUser.biometricLockEnabled,
-        notificationsEnabled: remoteUser.notificationsEnabled,
-      );
-      await localDataSource.cacheUser(finalUser);
-      return finalUser;
-    }
-
-    return null;
+    final onboarding = await localDataSource.isOnboardingCompleted();
+    final finalUser = UserModel(
+      uid: remoteUser.uid,
+      phoneNumber: remoteUser.phoneNumber,
+      email: remoteUser.email,
+      displayName: remoteUser.displayName,
+      photoUrl: remoteUser.photoUrl,
+      isOnboardingCompleted: onboarding || remoteUser.isOnboardingCompleted,
+      age: remoteUser.age,
+      heightCm: remoteUser.heightCm,
+      weightKg: remoteUser.weightKg,
+      country: remoteUser.country,
+      region: remoteUser.region,
+      pmosDiagnosisStatus: remoteUser.pmosDiagnosisStatus,
+      medications: remoteUser.medications,
+      allergies: remoteUser.allergies,
+      goals: remoteUser.goals,
+      biometricLockEnabled: remoteUser.biometricLockEnabled,
+      notificationsEnabled: remoteUser.notificationsEnabled,
+    );
+    await localDataSource.cacheUser(finalUser);
+    return finalUser;
   }
 
   @override

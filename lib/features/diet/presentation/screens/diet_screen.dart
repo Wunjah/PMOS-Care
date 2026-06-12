@@ -1,8 +1,24 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/gemini_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/diet_provider.dart';
+
+// ─── Design tokens (matching home & calendar screens) ────────────────────────
+const _kPrimary = Color(0xFF5152B9);
+const _kDarkText = Color(0xFF191C20);
+const _kBodyText = Color(0xFF464552);
+const _kMutedText = Color(0xFF777684);
+const _kBg = Color(0xFFF8F9FF);
+const _kGlass = Color(0xB3FFFFFF);
+const _kGlassBorder = Color(0x80FFFFFF);
+const _kDivider = Color(0xFFE7E8EE);
+const _kTealDark = Color(0xFF00696A);
+const _kTealBg = Color(0x1A45A8A9);
+const _kTealBorder = Color(0x3345A8A9);
+const _kTeal = Color(0xFF45A8A9);
+const _kProgressTrack = Color(0xFFECEEF3);
 
 class DietScreen extends ConsumerStatefulWidget {
   const DietScreen({super.key});
@@ -33,39 +49,53 @@ class _DietScreenState extends ConsumerState<DietScreen>
   final List<Map<String, String>> _chatMessages = [];
   final _chatController = TextEditingController();
   String _selectedDish = 'Ndole';
-  String _apiKey = '';
   bool _isAiTyping = false;
 
   final Map<String, Map<String, dynamic>> _recipes = {
     'Ndole': {
       'name': 'Ndole (Bitterleaf Stew)',
-      'ingredients': 'Bitterleaf, peanuts, onions, garlic, crayfish, fish/beef, healthy oil.',
-      'instructions': 'Boil raw peanuts, grind them. Wash bitterleaves to remove bitterness. Saute onions, add peanuts and bitterleaves, simmer with fish/crayfish.',
-      'optimizations': '✔ Swap palm/standard oil for olive or canola oil in very limited quantity.\n✔ Use lean fish or skinless chicken instead of fatty beef or tripe.\n✔ Pair with unripe boiled plantains or oatmeal fufu instead of high-glycemic white cassava fufu.',
+      'ingredients':
+          'Bitterleaf, peanuts, onions, garlic, crayfish, fish/beef, healthy oil.',
+      'instructions':
+          'Boil raw peanuts, grind them. Wash bitterleaves to remove bitterness. Sauté onions, add peanuts and bitterleaves, simmer with fish/crayfish.',
+      'optimizations':
+          '✔ Swap palm/standard oil for olive or canola oil in very limited quantity.\n✔ Use lean fish or skinless chicken instead of fatty beef or tripe.\n✔ Pair with unripe boiled plantains or oatmeal fufu instead of high-glycemic white cassava fufu.',
     },
     'Achu': {
       'name': 'Achu Soup & Taro',
-      'ingredients': 'Taro (cocoyam), limestone (kanwa), warm red oil, spices, fish/beef.',
-      'instructions': 'Boil cocoyam, pound it into a smooth paste. Mix limestone water with warm red oil to emulsify yellow Achu soup, add spices.',
-      'optimizations': '✔ Taro is high in fast carbs; reduce the portion size of Achu paste.\n✔ Minimize red palm oil in the yellow soup to reduce saturated fats.\n✔ Increase steamed fish and green vegetables on the side to lower overall glycemic load.',
+      'ingredients':
+          'Taro (cocoyam), limestone (kanwa), warm red oil, spices, fish/beef.',
+      'instructions':
+          'Boil cocoyam, pound into a smooth paste. Mix limestone water with warm red oil to emulsify yellow Achu soup, add spices.',
+      'optimizations':
+          '✔ Taro is high in fast carbs; reduce the portion size of Achu paste.\n✔ Minimise red palm oil in the yellow soup to reduce saturated fats.\n✔ Increase steamed fish and green vegetables on the side to lower overall glycaemic load.',
     },
     'Eru': {
       'name': 'Eru & Waterleaf',
-      'ingredients': 'Eru leaves (Okok), waterleaf, palm oil, crayfish, hides (canda), fish/beef.',
-      'instructions': 'Slice waterleaf and Eru leaves. Cook waterleaf, add Eru, crayfish, canda, beef, and palm oil. Simmer until water evaporates.',
-      'optimizations': '✔ Avoid adding heavy amounts of red palm oil (limit to 1-2 tablespoons).\n✔ Choose healthy lean fish or skinless poultry instead of fatty meats.\n✔ Pair with low-glycemic flour (oatmeal or plantain fufu) rather than cassava fufu.',
+      'ingredients':
+          'Eru leaves (Okok), waterleaf, palm oil, crayfish, hides (canda), fish/beef.',
+      'instructions':
+          'Slice waterleaf and Eru leaves. Cook waterleaf, add Eru, crayfish, canda, beef, and palm oil. Simmer until water evaporates.',
+      'optimizations':
+          '✔ Limit red palm oil to 1–2 tablespoons maximum.\n✔ Choose lean fish or skinless poultry instead of fatty meats.\n✔ Pair with oatmeal or plantain fufu rather than cassava fufu.',
     },
     'Rice & Stew': {
       'name': 'Rice and Tomato/Beef Stew',
-      'ingredients': 'Local red or brown rice, fresh tomatoes, onions, garlic, ginger, spices, lean beef or fish, healthy oil.',
-      'instructions': 'Boil local red rice. Blend tomatoes, onions, garlic, and ginger. Boil down tomato blend. Heat minimal oil, saute onions, add tomato paste and cook. Add boiled beef/fish and simmer.',
-      'optimizations': '✔ ALWAYS use local red rice or brown rice instead of white rice to lower the Glycemic Index.\n✔ Limit the cooking oil (1-2 tablespoons maximum) to prevent excessive saturated fat intake.\n✔ Serve with a side of steamed vegetables or garden egg salad to increase fiber.\n✔ If you don\'t have specific info about a dish, check the online Cameroonian dishes database: https://www.cameroonweb.com/CameroonHomePage/food/',
+      'ingredients':
+          'Local red or brown rice, fresh tomatoes, onions, garlic, ginger, spices, lean beef or fish, healthy oil.',
+      'instructions':
+          'Boil local red rice. Blend tomatoes, onions, garlic and ginger. Boil down tomato blend. Heat minimal oil, sauté onions, add tomato paste and cook. Add boiled beef/fish and simmer.',
+      'optimizations':
+          '✔ ALWAYS use local red rice or brown rice to lower the Glycaemic Index.\n✔ Limit cooking oil to 1–2 tablespoons to prevent excessive saturated fat intake.\n✔ Serve with steamed vegetables or garden egg salad to increase fibre.',
     },
     'Fufu & Njama Njama': {
       'name': 'Fufu and Njama Njama (Huckleberry)',
-      'ingredients': 'Njama njama (huckleberry) leaves, onions, tomatoes, fufu flour (oat or green plantain), optional lean chicken/fish.',
-      'instructions': 'Wash huckleberry leaves. Saute onions and tomatoes, add huckleberry leaves and steam. Prepare fufu by mixing oat flour or unripe plantain flour with boiling water until solid and smooth.',
-      'optimizations': '✔ Swap high-GI cassava fufu or corn fufu with plantain fufu (made from unripe green plantains) or oatmeal fufu.\n✔ Limit added fats/oil when frying the njama njama.\n✔ Add a clean protein source (like boiled eggs or grilled fish) to improve hormone regulation.\n✔ If you don\'t have specific info about a dish, check the online Cameroonian dishes database: https://www.cameroonweb.com/CameroonHomePage/food/',
+      'ingredients':
+          'Njama njama leaves, onions, tomatoes, fufu flour (oat or green plantain), optional lean chicken/fish.',
+      'instructions':
+          'Wash huckleberry leaves. Sauté onions and tomatoes, add leaves and steam. Prepare fufu by mixing oat flour or unripe plantain flour with boiling water until smooth.',
+      'optimizations':
+          '✔ Swap high-GI cassava fufu with plantain fufu or oatmeal fufu.\n✔ Limit added oils when frying the njama njama.\n✔ Add boiled eggs or grilled fish to improve hormone regulation.',
     },
   };
 
@@ -73,10 +103,8 @@ class _DietScreenState extends ConsumerState<DietScreen>
     final query = _chatController.text.trim();
     if (query.isEmpty) return;
 
-    final userMsg = {'role': 'user', 'message': query};
-
     setState(() {
-      _chatMessages.add(userMsg);
+      _chatMessages.add({'role': 'user', 'message': query});
       _chatController.clear();
       _isAiTyping = true;
     });
@@ -86,22 +114,22 @@ class _DietScreenState extends ConsumerState<DietScreen>
         'role': msg['role'] == 'user' ? 'user' : 'model',
         'parts': [
           {'text': msg['message'] ?? ''}
-        ]
+        ],
       };
     }).toList();
 
     final assistantMsgIndex = _chatMessages.length;
-    setState(() {
-      _chatMessages.add({'role': 'assistant', 'message': ''});
-    });
+    setState(() => _chatMessages.add({'role': 'assistant', 'message': ''}));
 
-    const systemInstruction = 
-        "You are the PMOS Care AI Chef, specializing in optimizing traditional Cameroonian cuisine for women with PMOS/PCOS. "
-        "Focus on traditional Cameroonian dishes (Ndole, Eru, Achu, Rice & Stew, Fufu & Njama Njama, Koki, Mbanga). "
-        "Suggest swapping high-glycemic index staples (cassava fufu, white garri, white rice) with low-glycemic alternatives (boiled unripe plantain, oatmeal fufu, plantain fufu). "
-        "All recommendations and meal advices MUST focus on Cameroonian foods. If you do not have information about any dish or recipe, you MUST provide a link to the existing database of Cameroonian dishes online (such as https://www.cameroonweb.com/CameroonHomePage/food/ or a search engine query for Cameroon food recipes).";
+    const systemInstruction =
+        'You are the PMOS Care AI Chef, specialising in optimising traditional Cameroonian cuisine for women with PMOS/PCOS. '
+        'Focus on dishes such as Ndole, Eru, Achu, Rice & Stew, Fufu & Njama Njama, Koki, and Mbanga. '
+        'Suggest swapping high-glycaemic staples (cassava fufu, white garri, white rice) with low-glycaemic alternatives '
+        '(boiled unripe plantain, oatmeal fufu, plantain fufu). '
+        'All recommendations MUST focus on Cameroonian foods. If you lack specific dish information, provide a link to '
+        'https://www.cameroonweb.com/CameroonHomePage/food/ or a relevant search query.';
 
-    StringBuffer accumulated = StringBuffer();
+    final accumulated = StringBuffer();
     bool hasError = false;
 
     try {
@@ -112,10 +140,11 @@ class _DietScreenState extends ConsumerState<DietScreen>
 
       await for (final token in stream) {
         if (!mounted) return;
-        if (token == "Google AI is temporarily unavailable.") {
+        if (token == 'Google AI is temporarily unavailable.') {
           hasError = true;
-          accumulated.clear();
-          accumulated.write("Google AI is temporarily unavailable.");
+          accumulated
+            ..clear()
+            ..write('Google AI is temporarily unavailable.');
           break;
         }
         accumulated.write(token);
@@ -124,97 +153,28 @@ class _DietScreenState extends ConsumerState<DietScreen>
           _isAiTyping = false;
         });
       }
-    } catch (e) {
+    } catch (_) {
       hasError = true;
-      accumulated.clear();
-      accumulated.write("Google AI is temporarily unavailable.");
+      accumulated
+        ..clear()
+        ..write('Google AI is temporarily unavailable.');
     }
 
     if (!mounted) return;
-
     if (hasError || accumulated.isEmpty) {
       setState(() {
-        _chatMessages[assistantMsgIndex]['message'] = "Google AI is temporarily unavailable.";
+        _chatMessages[assistantMsgIndex]['message'] =
+            'Google AI is temporarily unavailable.';
         _isAiTyping = false;
       });
     }
-
-    final messageId = 'msg_${DateTime.now().millisecondsSinceEpoch}';
-    final responseText = _chatMessages[assistantMsgIndex]['message'] ?? '';
-    debugPrint('[Gemini Verification Log] message_id: $messageId, timestamp: ${DateTime.now().toIso8601String()}, request_sent_to_gemini: $query, response_received_from_gemini: $responseText');
-  }
-
-  Future<void> _loadApiKey() async {
-    await GeminiService().loadApiKey();
-    setState(() {
-      _apiKey = GeminiService().apiKey;
-    });
-  }
-
-  Future<void> _saveApiKey(String key) async {
-    await GeminiService().saveApiKey(key);
-    setState(() {
-      _apiKey = key;
-    });
-  }
-
-  void _showApiKeyDialog() {
-    final controller = TextEditingController(text: _apiKey);
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            'Configure Google Gemini API Key',
-            style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Enter your Google Gemini API Key below. This key is shared across AI boards and stored securely in local preferences.',
-                style: TextStyle(fontFamily: 'Inter', fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'API Key',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                _saveApiKey('');
-                Navigator.pop(context);
-              },
-              child: const Text('Clear Key'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _saveApiKey(controller.text.trim());
-                Navigator.pop(context);
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _loadApiKey();
+    GeminiService().loadApiKey();
   }
 
   @override
@@ -224,38 +184,372 @@ class _DietScreenState extends ConsumerState<DietScreen>
     super.dispose();
   }
 
+  // ── Build ─────────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Diet & Nutrition',
-          style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold),
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppTheme.primaryWellness,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppTheme.primaryWellness,
-          tabs: const [
-            Tab(icon: Icon(Icons.restaurant_outlined), text: 'Food Guide'),
-            Tab(icon: Icon(Icons.track_changes_outlined), text: 'Tracker'),
-            Tab(icon: Icon(Icons.tips_and_updates_outlined), text: 'Advice'),
-            Tab(icon: Icon(Icons.psychology_outlined), text: 'AI Chef'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
+      backgroundColor: _kBg,
+      body: Column(
         children: [
-          _buildFoodGuide(),
-          _buildMealTracker(),
-          _buildDietaryAdvice(),
-          _buildAiKitchenGuide(),
+          _buildHeader(),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildFoodGuide(),
+                _buildMealTracker(),
+                _buildDietaryAdvice(),
+                _buildAiKitchenGuide(),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
+
+  // ── Frosted Header ────────────────────────────────────────────────────────────
+
+  Widget _buildHeader() {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: _kBg.withOpacity(0.9),
+            border: const Border(bottom: BorderSide(color: _kDivider)),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: _kTealBg,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.restaurant_outlined,
+                                      size: 11, color: _kTealDark),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'NUTRITION',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: _kTealDark,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Diet & Nutrition',
+                              style: TextStyle(
+                                fontFamily: 'Outfit',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 26,
+                                letterSpacing: -0.5,
+                                color: _kDarkText,
+                              ),
+                            ),
+                            const Text(
+                              'Cameroonian food guide & PMOS meal planning',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 12,
+                                color: _kMutedText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: _kTealBg,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: _kTealBorder),
+                        ),
+                        child: const Icon(Icons.restaurant_rounded,
+                            color: _kTeal, size: 20),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TabBar(
+                  controller: _tabController,
+                  labelColor: _kPrimary,
+                  unselectedLabelColor: _kMutedText,
+                  indicatorColor: _kPrimary,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  indicatorWeight: 2.5,
+                  dividerColor: Colors.transparent,
+                  labelStyle: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  tabs: const [
+                    Tab(
+                        icon: Icon(Icons.restaurant_outlined, size: 16),
+                        text: 'Food Guide'),
+                    Tab(
+                        icon: Icon(Icons.track_changes_outlined, size: 16),
+                        text: 'Tracker'),
+                    Tab(
+                        icon: Icon(Icons.tips_and_updates_outlined, size: 16),
+                        text: 'Advice'),
+                    Tab(
+                        icon: Icon(Icons.psychology_outlined, size: 16),
+                        text: 'AI Chef'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Food Guide tab ────────────────────────────────────────────────────────────
+
+  Widget _buildFoodGuide() {
+    final foodsAsync = ref.watch(foodsProvider);
+
+    return foodsAsync.when(
+      loading: () =>
+          const Center(child: CircularProgressIndicator(color: _kPrimary)),
+      error: (e, _) => Center(child: Text('Error loading foods: $e')),
+      data: (foods) {
+        final filtered = foods.where((f) {
+          final matchesSearch = _searchQuery.isEmpty ||
+              f.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              f.localName.toLowerCase().contains(_searchQuery.toLowerCase());
+          final matchesCategory =
+              _selectedCategory == 'All' || f.category == _selectedCategory;
+          final matchesSuitability =
+              _selectedSuitability == 'All' || f.suitability == _selectedSuitability;
+          return matchesSearch && matchesCategory && matchesSuitability;
+        }).toList();
+
+        return Column(
+          children: [
+            _buildSearchBar(),
+            _buildSuitabilityFilter(),
+            _buildCategoryFilter(),
+            Expanded(
+              child: filtered.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No foods match your search.',
+                        style:
+                            TextStyle(fontFamily: 'Inter', color: _kMutedText),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding:
+                          const EdgeInsets.only(bottom: 24, top: 4),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, i) =>
+                          _FoodCard(food: filtered[i]),
+                    ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _kDivider),
+          boxShadow: [
+            BoxShadow(
+              color: _kPrimary.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: TextField(
+          decoration: InputDecoration(
+            hintText: 'Search Cameroonian foods…',
+            hintStyle: const TextStyle(
+                fontFamily: 'Inter', fontSize: 13, color: _kMutedText),
+            prefixIcon: const Icon(Icons.search_rounded,
+                color: _kMutedText, size: 20),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: _kPrimary, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 0),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear_rounded,
+                        size: 16, color: _kMutedText),
+                    onPressed: () => setState(() => _searchQuery = ''),
+                  )
+                : null,
+          ),
+          onChanged: (q) => setState(() => _searchQuery = q),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuitabilityFilter() {
+    const options = ['All', 'Good', 'Moderate', 'Limit'];
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        scrollDirection: Axis.horizontal,
+        children: options.map((option) {
+          final isSelected = _selectedSuitability == option;
+          late Color chipColor;
+          late Color textColor;
+          if (option == 'Good') {
+            chipColor = isSelected
+                ? AppTheme.glycemicLow
+                : AppTheme.glycemicLow.withOpacity(0.1);
+            textColor =
+                isSelected ? Colors.white : AppTheme.glycemicLow;
+          } else if (option == 'Moderate') {
+            chipColor = isSelected
+                ? AppTheme.glycemicMedium
+                : AppTheme.glycemicMedium.withOpacity(0.1);
+            textColor =
+                isSelected ? Colors.white : AppTheme.glycemicMedium;
+          } else if (option == 'Limit') {
+            chipColor = isSelected
+                ? AppTheme.glycemicHigh
+                : AppTheme.glycemicHigh.withOpacity(0.1);
+            textColor =
+                isSelected ? Colors.white : AppTheme.glycemicHigh;
+          } else {
+            chipColor = isSelected ? _kPrimary : _kProgressTrack;
+            textColor = isSelected ? Colors.white : _kBodyText;
+          }
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedSuitability = option),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                decoration: BoxDecoration(
+                  color: chipColor,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  option,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildCategoryFilter() {
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        scrollDirection: Axis.horizontal,
+        children: _categoryLabels.entries.map((entry) {
+          final isSelected = _selectedCategory == entry.key;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () =>
+                  setState(() => _selectedCategory = entry.key),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                decoration: BoxDecoration(
+                  color: isSelected ? _kPrimary : Colors.white,
+                  borderRadius: BorderRadius.circular(999),
+                  border: isSelected
+                      ? null
+                      : Border.all(color: _kDivider),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: _kPrimary.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          )
+                        ]
+                      : null,
+                ),
+                child: Text(
+                  entry.value,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color:
+                        isSelected ? Colors.white : _kBodyText,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  // ── Meal Tracker tab ──────────────────────────────────────────────────────────
 
   Widget _buildMealTracker() {
     final mealState = ref.watch(mealLogStateNotifierProvider);
@@ -283,160 +577,305 @@ class _DietScreenState extends ConsumerState<DietScreen>
       }
     }
 
+    final waterFraction = (totalWater / 2500).clamp(0.0, 1.0);
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Card(
-            color: AppTheme.primaryLight,
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Today\'s Nutrition Summary',
-                    style: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryWellness,
+          // ── Gradient summary card ──────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment(-0.8, -0.6),
+                end: Alignment(0.8, 0.6),
+                colors: [Color(0xFF5152B9), Color(0xFF6C6DD1)],
+              ),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: _kPrimary.withOpacity(0.28),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  bottom: -28,
+                  right: -18,
+                  child: Transform.rotate(
+                    angle: 0.3,
+                    child: Icon(
+                      Icons.restaurant_rounded,
+                      size: 110,
+                      color: Colors.white.withOpacity(0.08),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildNutritionStat('Calories', '${totalCals.toStringAsFixed(0)} kcal', Icons.local_fire_department, Colors.orange),
-                      _buildNutritionStat('Protein', '${totalProtein.toStringAsFixed(1)} g', Icons.fitness_center, Colors.blue),
-                      _buildNutritionStat('Fiber', '${totalFiber.toStringAsFixed(1)} g', Icons.eco, Colors.green),
-                      _buildNutritionStat('Water', '${totalWater.toStringAsFixed(0)} ml', Icons.water_drop, Colors.teal),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Text(
+                            "Today's Summary",
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          totalCals.toStringAsFixed(0),
+                          style: const TextStyle(
+                            fontFamily: 'Outfit',
+                            fontSize: 42,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            height: 1.0,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 7),
+                          child: Text(
+                            'kcal today',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 14,
+                              color: Color(0xFFE2DFFF),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        _buildMiniStat('Protein',
+                            '${totalProtein.toStringAsFixed(1)}g'),
+                        const SizedBox(width: 28),
+                        _buildMiniStat(
+                            'Fiber', '${totalFiber.toStringAsFixed(1)}g'),
+                        const SizedBox(width: 28),
+                        _buildMiniStat(
+                            'Water', '${totalWater.toStringAsFixed(0)}ml'),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
+
+          const SizedBox(height: 14),
+
+          // ── Hydration card ─────────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: _kTealBg,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: _kTealBorder),
+                      ),
+                      child: const Icon(Icons.water_drop_outlined,
+                          color: _kTealDark, size: 18),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Hydration',
+                          style: TextStyle(
+                            fontFamily: 'Outfit',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: _kDarkText,
+                          ),
+                        ),
+                        Text(
+                          '${totalWater.toStringAsFixed(0)} / 2500 ml',
+                          style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 12,
+                              color: _kMutedText),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    _buildWaterButton('+250ml', 250),
+                    const SizedBox(width: 8),
+                    _buildWaterButton('+500ml', 500),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: SizedBox(
+                    height: 6,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        const ColoredBox(color: _kProgressTrack),
+                        FractionallySizedBox(
+                          widthFactor: waterFraction,
+                          alignment: Alignment.centerLeft,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: _kTeal,
+                              borderRadius: BorderRadius.circular(999),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _kTeal.withOpacity(0.4),
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           const SizedBox(height: 20),
 
-          const Text(
-            'Quick Hydration Logger',
-            style: TextStyle(fontFamily: 'Outfit', fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.grey.withAlpha(50)),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.water_drop, color: Colors.teal, size: 28),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Hydration: ${totalWater.toStringAsFixed(0)} / 2500 ml',
-                        style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal.withAlpha(30),
-                          foregroundColor: Colors.teal,
-                          elevation: 0,
-                          minimumSize: const Size(60, 32),
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        ),
-                        onPressed: () {
-                          ref.read(mealLogStateNotifierProvider.notifier).addMealLog(
-                                mealType: 'water',
-                                foodName: 'Water',
-                                calories: 0,
-                                proteinGrams: 0,
-                                fiberGrams: 0,
-                                waterMl: 250,
-                                date: DateTime.now(),
-                              );
-                        },
-                        child: const Text('+250ml', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal.withAlpha(50),
-                          foregroundColor: Colors.teal.shade900,
-                          elevation: 0,
-                          minimumSize: const Size(60, 32),
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        ),
-                        onPressed: () {
-                          ref.read(mealLogStateNotifierProvider.notifier).addMealLog(
-                                mealType: 'water',
-                                foodName: 'Water',
-                                calories: 0,
-                                proteinGrams: 0,
-                                fiberGrams: 0,
-                                waterMl: 500,
-                                date: DateTime.now(),
-                              );
-                        },
-                        child: const Text('+500ml', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
+          // ── Today's meals ──────────────────────────────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Today\'s Meals',
-                style: TextStyle(fontFamily: 'Outfit', fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark),
-              ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(120, 36),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                "Today's Meals",
+                style: TextStyle(
+                  fontFamily: 'Outfit',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                  color: _kDarkText,
                 ),
-                onPressed: () => _showAddMealDialog(context),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Log Meal', style: TextStyle(fontSize: 13)),
+              ),
+              GestureDetector(
+                onTap: () => _showAddMealDialog(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: _kPrimary,
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _kPrimary.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add, color: Colors.white, size: 14),
+                      SizedBox(width: 4),
+                      Text(
+                        'Log Meal',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
 
           todayLogs.isEmpty
               ? Container(
-                  height: 120,
+                  padding: const EdgeInsets.symmetric(vertical: 32),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.withAlpha(50)),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _kDivider),
                   ),
-                  child: const Text(
-                    'No meals logged today.',
-                    style: TextStyle(fontFamily: 'Inter', color: Colors.grey),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: const BoxDecoration(
+                          color: _kProgressTrack,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.restaurant_outlined,
+                            color: _kMutedText, size: 22),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'No meals logged yet',
+                        style: TextStyle(
+                          fontFamily: 'Outfit',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: _kBodyText,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Tap "Log Meal" to track your nutrition',
+                        style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            color: _kMutedText),
+                      ),
+                    ],
                   ),
                 )
               : ListView.builder(
@@ -446,37 +885,79 @@ class _DietScreenState extends ConsumerState<DietScreen>
                   itemBuilder: (context, index) {
                     final log = todayLogs[index];
                     final isWater = log.mealType == 'water';
-
-                    return Card(
-                      elevation: 0,
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: Colors.grey.withAlpha(50)),
-                      ),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: isWater ? Colors.teal.withAlpha(30) : AppTheme.primaryLight,
-                          child: Icon(
-                            isWater ? Icons.water_drop : Icons.restaurant,
-                            color: isWater ? Colors.teal : AppTheme.primaryWellness,
-                            size: 20,
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
-                        ),
-                        title: Text(
-                          isWater ? 'Hydration' : log.foodName,
-                          style: const TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        subtitle: Text(
-                          isWater
-                              ? '${log.waterMl.toStringAsFixed(0)} ml water'
-                              : '${log.mealType.toUpperCase()} | ${log.calories.toStringAsFixed(0)} kcal | P: ${log.proteinGrams}g | F: ${log.fiberGrams}g',
-                          style: const TextStyle(fontFamily: 'Inter', fontSize: 11.5),
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.glycemicHigh),
-                          onPressed: () => ref.read(mealLogStateNotifierProvider.notifier).removeMealLog(log.id),
-                        ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: isWater
+                                  ? _kTealBg
+                                  : const Color(0x1A5152B9),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isWater
+                                    ? _kTealBorder
+                                    : const Color(0x335152B9),
+                              ),
+                            ),
+                            child: Icon(
+                              isWater
+                                  ? Icons.water_drop_outlined
+                                  : Icons.restaurant_outlined,
+                              color: isWater ? _kTealDark : _kPrimary,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isWater ? 'Hydration' : log.foodName,
+                                  style: const TextStyle(
+                                    fontFamily: 'Outfit',
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: _kDarkText,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  isWater
+                                      ? '${log.waterMl.toStringAsFixed(0)} ml water'
+                                      : '${log.mealType.toUpperCase()} • ${log.calories.toStringAsFixed(0)} kcal • P: ${log.proteinGrams}g • F: ${log.fiberGrams}g',
+                                  style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 11.5,
+                                      color: _kMutedText),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded,
+                                size: 18, color: AppTheme.glycemicHigh),
+                            onPressed: () => ref
+                                .read(mealLogStateNotifierProvider.notifier)
+                                .removeMealLog(log.id),
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -486,22 +967,67 @@ class _DietScreenState extends ConsumerState<DietScreen>
     );
   }
 
-  Widget _buildNutritionStat(String label, String value, IconData icon, Color color) {
+  Widget _buildMiniStat(String label, String value) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(fontFamily: 'Outfit', fontSize: 13, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontFamily: 'Outfit',
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            height: 1.1,
+          ),
         ),
         Text(
           label,
-          style: const TextStyle(fontFamily: 'Inter', fontSize: 10, color: Colors.grey),
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 11,
+            color: Color(0xFFE2DFFF),
+            letterSpacing: 0.3,
+          ),
         ),
       ],
     );
   }
+
+  Widget _buildWaterButton(String label, double amount) {
+    return GestureDetector(
+      onTap: () {
+        ref.read(mealLogStateNotifierProvider.notifier).addMealLog(
+              mealType: 'water',
+              foodName: 'Water',
+              calories: 0,
+              proteinGrams: 0,
+              fiberGrams: 0,
+              waterMl: amount,
+              date: DateTime.now(),
+            );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: _kTealBg,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: _kTealBorder),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: _kTealDark,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Add Meal dialog ───────────────────────────────────────────────────────────
 
   void _showAddMealDialog(BuildContext context) {
     final formKey = GlobalKey<FormState>();
@@ -511,559 +1037,649 @@ class _DietScreenState extends ConsumerState<DietScreen>
     final fiberController = TextEditingController();
     final waterController = TextEditingController();
     String selectedMealType = 'breakfast';
-
-    final List<String> mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
+    const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
 
     showDialog(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text(
-                'Log Meal Details',
-                style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold),
-              ),
-              content: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setS) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Log Meal',
+            style: TextStyle(
+                fontFamily: 'Outfit',
+                fontWeight: FontWeight.bold,
+                color: _kDarkText),
+          ),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedMealType,
+                    decoration: InputDecoration(
+                      labelText: 'Meal Type',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
+                    ),
+                    items: mealTypes
+                        .map((t) => DropdownMenuItem(
+                            value: t, child: Text(t.toUpperCase())))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) setS(() => selectedMealType = val);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: foodNameController,
+                    decoration: InputDecoration(
+                      labelText: 'Food / Meal Name',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      hintText: 'e.g. Ndole with boiled plantain',
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
+                    ),
+                    validator: (v) =>
+                        (v == null || v.isEmpty) ? 'Name required' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: calsController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Calories (kcal)',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      hintText: 'e.g. 350',
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
+                    ),
+                    validator: (v) =>
+                        (v == null || v.isEmpty) ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
                     children: [
-                      DropdownButtonFormField<String>(
-                        value: selectedMealType,
-                        decoration: const InputDecoration(labelText: 'Meal Type', border: OutlineInputBorder()),
-                        items: mealTypes
-                            .map((type) => DropdownMenuItem(value: type, child: Text(type.toUpperCase())))
-                            .toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() => selectedMealType = val);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: foodNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Food / Meal Name',
-                          border: OutlineInputBorder(),
-                          hintText: 'e.g. Ndole with boiled plantain',
-                        ),
-                        validator: (val) => (val == null || val.isEmpty) ? 'Name is required' : null,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: calsController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Calories (kcal)',
-                          border: OutlineInputBorder(),
-                          hintText: 'e.g. 350',
-                        ),
-                        validator: (val) => (val == null || val.isEmpty) ? 'Required' : null,
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: proteinController,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              decoration: const InputDecoration(
-                                labelText: 'Protein (g)',
-                                border: OutlineInputBorder(),
-                                hintText: 'e.g. 20',
-                              ),
-                              validator: (val) => (val == null || val.isEmpty) ? 'Required' : null,
-                            ),
+                      Expanded(
+                        child: TextFormField(
+                          controller: proteinController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Protein (g)',
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            hintText: '20',
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 12),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextFormField(
-                              controller: fiberController,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              decoration: const InputDecoration(
-                                labelText: 'Fiber (g)',
-                                border: OutlineInputBorder(),
-                                hintText: 'e.g. 5',
-                              ),
-                              validator: (val) => (val == null || val.isEmpty) ? 'Required' : null,
-                            ),
-                          ),
-                        ],
+                          validator: (v) =>
+                              (v == null || v.isEmpty) ? 'Required' : null,
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: waterController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Water Intake (ml) (optional)',
-                          border: OutlineInputBorder(),
-                          hintText: 'e.g. 300',
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextFormField(
+                          controller: fiberController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Fiber (g)',
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            hintText: '5',
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 12),
+                          ),
+                          validator: (v) =>
+                              (v == null || v.isEmpty) ? 'Required' : null,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(minimumSize: const Size(100, 40)),
-                  onPressed: () async {
-                    if (formKey.currentState?.validate() ?? false) {
-                      final cals = double.parse(calsController.text);
-                      final protein = double.parse(proteinController.text);
-                      final fiber = double.parse(fiberController.text);
-                      final water = double.tryParse(waterController.text) ?? 0.0;
-
-                      await ref.read(mealLogStateNotifierProvider.notifier).addMealLog(
-                            mealType: selectedMealType,
-                            foodName: foodNameController.text,
-                            calories: cals,
-                            proteinGrams: protein,
-                            fiberGrams: fiber,
-                            waterMl: water,
-                            date: DateTime.now(),
-                          );
-
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Meal logged successfully!'),
-                            backgroundColor: AppTheme.glycemicLow,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  child: const Text('Save'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildFoodGuide() {
-    final foodsAsync = ref.watch(foodsProvider);
-
-    return foodsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error loading foods: $e')),
-      data: (foods) {
-        final filtered = foods.where((f) {
-          final matchesSearch = _searchQuery.isEmpty ||
-              f.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-              f.localName.toLowerCase().contains(_searchQuery.toLowerCase());
-          final matchesCategory =
-              _selectedCategory == 'All' || f.category == _selectedCategory;
-          final matchesSuitability =
-              _selectedSuitability == 'All' || f.suitability == _selectedSuitability;
-          return matchesSearch && matchesCategory && matchesSuitability;
-        }).toList();
-
-        return Column(
-          children: [
-            _buildSearchBar(),
-            _buildSuitabilityFilter(),
-            _buildCategoryFilter(),
-            Expanded(
-              child: filtered.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No foods match your search.',
-                        style: TextStyle(fontFamily: 'Inter', color: Colors.grey),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      itemCount: filtered.length,
-                      itemBuilder: (context, i) => _FoodCard(food: filtered[i]),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: waterController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Water (ml) — optional',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      hintText: '300',
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
                     ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel',
+                  style: TextStyle(color: _kMutedText)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _kPrimary,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(80, 40),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () async {
+                if (formKey.currentState?.validate() ?? false) {
+                  await ref
+                      .read(mealLogStateNotifierProvider.notifier)
+                      .addMealLog(
+                        mealType: selectedMealType,
+                        foodName: foodNameController.text,
+                        calories: double.parse(calsController.text),
+                        proteinGrams: double.parse(proteinController.text),
+                        fiberGrams: double.parse(fiberController.text),
+                        waterMl:
+                            double.tryParse(waterController.text) ?? 0.0,
+                        date: DateTime.now(),
+                      );
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Meal logged successfully!'),
+                        backgroundColor: AppTheme.glycemicLow,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Save',
+                  style: TextStyle(
+                      fontFamily: 'Inter', fontWeight: FontWeight.w600)),
             ),
           ],
-        );
-      },
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: 'Search Cameroonian foods…',
-          hintStyle: const TextStyle(fontFamily: 'Inter', fontSize: 14),
-          prefixIcon: const Icon(Icons.search, color: Colors.grey),
-          filled: true,
-          fillColor: Colors.grey.shade100,
-          contentPadding: const EdgeInsets.symmetric(vertical: 0),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () => setState(() => _searchQuery = ''),
-                )
-              : null,
         ),
-        onChanged: (q) => setState(() => _searchQuery = q),
       ),
     );
   }
 
-  Widget _buildSuitabilityFilter() {
-    const options = ['All', 'Good', 'Moderate', 'Limit'];
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        scrollDirection: Axis.horizontal,
-        children: options.map((option) {
-          final isSelected = _selectedSuitability == option;
-          Color chipColor = Colors.grey.shade200;
-          Color labelColor = Colors.grey.shade700;
-          if (option == 'Good') {
-            chipColor = isSelected ? AppTheme.glycemicLow : AppTheme.glycemicLow.withOpacity(0.12);
-            labelColor = isSelected ? Colors.white : AppTheme.glycemicLow;
-          } else if (option == 'Moderate') {
-            chipColor = isSelected ? AppTheme.glycemicMedium : AppTheme.glycemicMedium.withOpacity(0.12);
-            labelColor = isSelected ? Colors.white : AppTheme.glycemicMedium;
-          } else if (option == 'Limit') {
-            chipColor = isSelected ? AppTheme.glycemicHigh : AppTheme.glycemicHigh.withOpacity(0.12);
-            labelColor = isSelected ? Colors.white : AppTheme.glycemicHigh;
-          } else {
-            chipColor = isSelected ? AppTheme.primaryWellness : Colors.grey.shade200;
-            labelColor = isSelected ? Colors.white : Colors.grey.shade700;
-          }
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedSuitability = option),
-              child: Chip(
-                label: Text(
-                  option,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: labelColor,
-                  ),
-                ),
-                backgroundColor: chipColor,
-                side: BorderSide.none,
-                padding: EdgeInsets.zero,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildCategoryFilter() {
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        scrollDirection: Axis.horizontal,
-        children: _categoryLabels.entries.map((entry) {
-          final isSelected = _selectedCategory == entry.key;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedCategory = entry.key),
-              child: Chip(
-                label: Text(
-                  entry.value,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 12,
-                    color: isSelected ? Colors.white : AppTheme.primaryWellness,
-                  ),
-                ),
-                backgroundColor: isSelected
-                    ? AppTheme.primaryWellness
-                    : AppTheme.primaryLight,
-                side: BorderSide.none,
-                padding: EdgeInsets.zero,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
+  // ── Dietary Advice tab ────────────────────────────────────────────────────────
 
   Widget _buildDietaryAdvice() {
     final adviceAsync = ref.watch(dietaryAdviceProvider);
 
     return adviceAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () =>
+          const Center(child: CircularProgressIndicator(color: _kPrimary)),
       error: (e, _) => Center(child: Text('Error loading advice: $e')),
       data: (sections) => ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         itemCount: sections.length,
-        itemBuilder: (context, i) => _AdviceSectionWidget(section: sections[i]),
+        itemBuilder: (context, i) =>
+            _AdviceSectionWidget(section: sections[i]),
       ),
     );
   }
+
+  // ── AI Kitchen Guide tab ──────────────────────────────────────────────────────
 
   Widget _buildAiKitchenGuide() {
     final recipe = _recipes[_selectedDish]!;
 
     return Column(
       children: [
-        // Dropdown Dish Selector
+        // Dish selector
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           color: Colors.white,
-          child: Row(
-            children: [
-              const Text(
-                'Select Dish:  ',
-                style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold, fontSize: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+            decoration: BoxDecoration(
+              color: _kBg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _kDivider),
+            ),
+            child: DropdownButton<String>(
+              value: _selectedDish,
+              isExpanded: true,
+              underline: const SizedBox(),
+              icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                  color: _kMutedText, size: 20),
+              style: const TextStyle(
+                fontFamily: 'Outfit',
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: _kDarkText,
               ),
-              Expanded(
-                child: DropdownButton<String>(
-                  value: _selectedDish,
-                  isExpanded: true,
-                  underline: const SizedBox(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() {
-                        _selectedDish = val;
-                      });
-                    }
-                  },
-                  items: _recipes.keys.map((key) {
-                    return DropdownMenuItem<String>(
-                      value: key,
-                      child: Text(_recipes[key]!['name'] as String, style: const TextStyle(fontFamily: 'Inter')),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ],
+              onChanged: (val) {
+                if (val != null) setState(() => _selectedDish = val);
+              },
+              items: _recipes.keys
+                  .map((key) => DropdownMenuItem<String>(
+                        value: key,
+                        child: Text(
+                          _recipes[key]!['name'] as String,
+                          style: const TextStyle(
+                              fontFamily: 'Outfit',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: _kDarkText),
+                        ),
+                      ))
+                  .toList(),
+            ),
           ),
         ),
-        const Divider(height: 1),
 
-        // Display selected recipe information
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             children: [
-              Card(
-                color: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
+              // ── Recipe glass card ──────────────────────────────────────────
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: _kGlass,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _kGlassBorder),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _kPrimary.withOpacity(0.07),
+                          blurRadius: 20,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: _kTealBg,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.menu_book_outlined,
+                                  size: 11, color: _kTealDark),
+                              SizedBox(width: 4),
+                              Text(
+                                'RECIPE',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: _kTealDark,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          recipe['name'] as String,
+                          style: const TextStyle(
+                            fontFamily: 'Outfit',
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: _kPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _buildRecipeSection(
+                          'Ingredients',
+                          recipe['ingredients'] as String,
+                          Icons.list_alt_outlined,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildRecipeSection(
+                          'Preparation',
+                          recipe['instructions'] as String,
+                          Icons.soup_kitchen_outlined,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ── PMOS optimisations gradient banner ─────────────────────────
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF5152B9), Color(0xFF6C6DD1)],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _kPrimary.withOpacity(0.28),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      bottom: -22,
+                      right: -22,
+                      child: Transform.rotate(
+                        angle: 0.2,
+                        child: Icon(
+                          Icons.tips_and_updates_outlined,
+                          size: 90,
+                          color: Colors.white.withOpacity(0.12),
+                        ),
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(999),
+                          child: BackdropFilter(
+                            filter:
+                                ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Text(
+                                'PMOS Optimisations',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          recipe['optimizations'] as String,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            height: 1.6,
+                            color: Color(0xFFE2DFFF),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // ── AI chat section ────────────────────────────────────────────
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: _kTealBg,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _kTealBorder),
+                    ),
+                    child: const Icon(Icons.psychology_outlined,
+                        color: _kTealDark, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        recipe['name'] as String,
-                        style: const TextStyle(fontFamily: 'Outfit', fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryWellness),
+                        'Ask AI Cooking Assistant',
+                        style: TextStyle(
+                          fontFamily: 'Outfit',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          color: _kDarkText,
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      Text('Ingredients: ${recipe['ingredients']}', style: const TextStyle(fontFamily: 'Inter', fontSize: 13)),
-                      const SizedBox(height: 12),
-                      const Text('Standard Preparation:', style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold, fontSize: 14)),
-                      const SizedBox(height: 4),
-                      Text(recipe['instructions'] as String, style: const TextStyle(fontFamily: 'Inter', fontSize: 13, height: 1.4)),
-                      const SizedBox(height: 16),
-                      
-                      // PMOS Optimizations Banner Card
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryLight,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.primaryWellness.withOpacity(0.2)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'AI PMOS Optimizations:',
-                              style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold, color: AppTheme.primaryWellness, fontSize: 13),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              recipe['optimizations'] as String,
-                              style: const TextStyle(fontFamily: 'Inter', fontSize: 12, height: 1.5, color: AppTheme.textDark),
-                            ),
-                          ],
-                        ),
+                      Text(
+                        'Powered by Google Gemini',
+                        style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11,
+                            color: _kMutedText),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
-              // Google AI Gemini status banner
+              // Chat history
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                constraints: const BoxConstraints(
+                    minHeight: 120, maxHeight: 240),
                 decoration: BoxDecoration(
-                  color: _apiKey.isEmpty ? Colors.blue.shade50 : Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _apiKey.isEmpty ? Colors.blue.shade200 : Colors.green.shade200,
-                  ),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _kDivider),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: _chatMessages.isEmpty
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Text(
+                            'Ask about ingredients, cooking methods,\nor PMOS-friendly substitutions',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              color: _kMutedText,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: _chatMessages.length,
+                        itemBuilder: (context, index) {
+                          final msg = _chatMessages[index];
+                          final isUser = msg['role'] == 'user';
+                          return Align(
+                            alignment: isUser
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                            child: Container(
+                              margin:
+                                  const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 9),
+                              constraints:
+                                  const BoxConstraints(maxWidth: 280),
+                              decoration: BoxDecoration(
+                                color: isUser
+                                    ? _kPrimary
+                                    : _kProgressTrack,
+                                borderRadius: BorderRadius.only(
+                                  topLeft: const Radius.circular(14),
+                                  topRight: const Radius.circular(14),
+                                  bottomLeft: Radius.circular(
+                                      isUser ? 14 : 4),
+                                  bottomRight: Radius.circular(
+                                      isUser ? 4 : 14),
+                                ),
+                              ),
+                              child: Text(
+                                msg['message'] ?? '',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 13,
+                                  height: 1.4,
+                                  color: isUser
+                                      ? Colors.white
+                                      : _kBodyText,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+
+              if (_isAiTyping) ...[
+                const SizedBox(height: 8),
+                const Row(
+                  children: [
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 1.5,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(_kPrimary),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'AI Chef is typing…',
+                      style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          color: _kMutedText),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 10),
+
+              // Chat input
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: _kDivider),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _kPrimary.withOpacity(0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      _apiKey.isEmpty ? Icons.warning_amber_rounded : Icons.check_circle_outline,
-                      color: _apiKey.isEmpty ? Colors.blue.shade800 : Colors.green.shade800,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 10),
                     Expanded(
-                      child: Text(
-                        _apiKey.isEmpty
-                            ? 'Offline Mode (Local facts only). Set Google Gemini API key to chat.'
-                            : 'Google AI Gemini Live (Active Connection)',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: _apiKey.isEmpty ? Colors.blue.shade900 : Colors.green.shade900,
+                      child: TextField(
+                        controller: _chatController,
+                        decoration: const InputDecoration(
+                          hintText: 'Ask about this recipe…',
+                          hintStyle: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              color: _kMutedText),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
                         ),
+                        onSubmitted: (_) => _sendChatMessage(),
+                        style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            color: _kDarkText),
                       ),
                     ),
-                    TextButton.icon(
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      onPressed: _showApiKeyDialog,
-                      icon: Icon(
-                        Icons.settings,
-                        color: _apiKey.isEmpty ? Colors.blue.shade800 : Colors.green.shade800,
-                        size: 14,
-                      ),
-                      label: Text(
-                        'Configure',
-                        style: TextStyle(
-                          fontFamily: 'Outfit',
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: _apiKey.isEmpty ? Colors.blue.shade800 : Colors.green.shade800,
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: GestureDetector(
+                        onTap: _sendChatMessage,
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: const BoxDecoration(
+                            color: _kPrimary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.send_rounded,
+                              color: Colors.white, size: 16),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
 
-              // Interactive Chat
-              const Text(
-                'Ask AI Cooking Assistant',
-                style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primaryWellness),
-              ),
-              const SizedBox(height: 8),
-
-              // Chat history list
-              Container(
-                height: 200,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _chatMessages.length,
-                  itemBuilder: (context, index) {
-                    final msg = _chatMessages[index];
-                    final isUser = msg['role'] == 'user';
-                    return Align(
-                      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: isUser ? AppTheme.primaryWellness : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          msg['message'] ?? '',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 12.5,
-                            color: isUser ? Colors.white : AppTheme.textDark,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              if (_isAiTyping) ...[
-                const SizedBox(height: 8),
-                const Padding(
-                  padding: EdgeInsets.only(left: 4.0),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 1.5,
-                          valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryWellness),
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'AI Chef is typing...',
-                        style: TextStyle(fontFamily: 'Inter', fontSize: 11, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: 8),
-
-              // Send Chat Form
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _chatController,
-                      decoration: const InputDecoration(
-                        hintText: 'Ask AI how to prep standard food...',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      onSubmitted: (_) => _sendChatMessage(),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.send, color: AppTheme.primaryWellness),
-                    onPressed: _sendChatMessage,
-                  ),
-                ],
-              ),
+              const SizedBox(height: 24),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecipeSection(
+      String title, String content, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 13, color: _kMutedText),
+            const SizedBox(width: 5),
+            Text(
+              title.toUpperCase(),
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: _kMutedText,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 5),
+        Text(
+          content,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 13,
+            height: 1.5,
+            color: _kBodyText,
           ),
         ),
       ],
@@ -1071,11 +1687,13 @@ class _DietScreenState extends ConsumerState<DietScreen>
   }
 }
 
+// ─── Food Card ────────────────────────────────────────────────────────────────
+
 class _FoodCard extends StatelessWidget {
   final FoodItem food;
   const _FoodCard({required this.food});
 
-  Color get _borderColor {
+  Color get _accentColor {
     switch (food.suitability) {
       case 'Good':
         return AppTheme.glycemicLow;
@@ -1088,89 +1706,119 @@ class _FoodCard extends StatelessWidget {
     }
   }
 
-  Color get _badgeColor {
+  Color get _badgeBg {
     switch (food.suitability) {
       case 'Good':
-        return AppTheme.glycemicLow.withOpacity(0.15);
+        return AppTheme.glycemicLow.withOpacity(0.1);
       case 'Moderate':
-        return AppTheme.glycemicMedium.withOpacity(0.15);
+        return AppTheme.glycemicMedium.withOpacity(0.1);
       case 'Limit':
-        return AppTheme.glycemicHigh.withOpacity(0.15);
+        return AppTheme.glycemicHigh.withOpacity(0.1);
       default:
-        return Colors.grey.withOpacity(0.15);
+        return Colors.grey.withOpacity(0.1);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ExpansionTile(
-        leading: Container(
-          width: 4,
-          height: 40,
-          decoration: BoxDecoration(
-            color: _borderColor,
-            borderRadius: BorderRadius.circular(4),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-        ),
-        tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        title: Text(
-          food.name,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
+        ],
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          leading: Container(
+            width: 4,
+            height: 44,
+            margin: const EdgeInsets.symmetric(vertical: 4),
+            decoration: BoxDecoration(
+              color: _accentColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
           ),
-        ),
-        subtitle: Text(
-          food.localName,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 12,
-            fontStyle: FontStyle.italic,
-            color: Colors.grey,
+          tilePadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+          childrenPadding:
+              const EdgeInsets.fromLTRB(14, 0, 14, 14),
+          title: Text(
+            food.name,
+            style: const TextStyle(
+              fontFamily: 'Outfit',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: _kDarkText,
+            ),
           ),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+          subtitle: Text(
+            food.localName,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+              color: _kMutedText,
+            ),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _badgeBg,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  food.suitability,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: _accentColor,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.keyboard_arrow_down_rounded,
+                  color: _kMutedText, size: 18),
+            ],
+          ),
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _badgeColor,
-                borderRadius: BorderRadius.circular(20),
+                color: _kBg,
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                food.suitability,
-                style: TextStyle(
+                food.explanation,
+                style: const TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: _borderColor,
+                  fontSize: 13,
+                  height: 1.5,
+                  color: _kBodyText,
                 ),
               ),
             ),
-            const Icon(Icons.keyboard_arrow_down, color: Colors.grey, size: 20),
           ],
         ),
-        children: [
-          Text(
-            food.explanation,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 13,
-              height: 1.5,
-              color: Colors.black87,
-            ),
-          ),
-        ],
       ),
     );
   }
 }
+
+// ─── Advice Section ───────────────────────────────────────────────────────────
 
 class _AdviceSectionWidget extends StatelessWidget {
   final AdviceSection section;
@@ -1179,7 +1827,7 @@ class _AdviceSectionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1189,7 +1837,7 @@ class _AdviceSectionWidget extends StatelessWidget {
               fontFamily: 'Outfit',
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppTheme.primaryWellness,
+              color: _kPrimary,
             ),
           ),
           const SizedBox(height: 4),
@@ -1198,14 +1846,14 @@ class _AdviceSectionWidget extends StatelessWidget {
             style: const TextStyle(
               fontFamily: 'Inter',
               fontSize: 13,
-              color: Colors.grey,
+              color: _kMutedText,
               height: 1.4,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           ...section.cards.map((card) => _AdviceCardWidget(card: card)),
-          const SizedBox(height: 8),
-          const Divider(),
+          const SizedBox(height: 4),
+          const Divider(color: _kDivider),
         ],
       ),
     );
@@ -1218,57 +1866,85 @@ class _AdviceCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        leading: const Icon(Icons.eco_outlined, color: AppTheme.primaryWellness),
-        title: Text(
-          card.title,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-        ),
-        children: [
-          Text(
-            card.body,
+        ],
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          childrenPadding:
+              const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          leading: Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(
+              color: Color(0x1A5152B9),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.eco_outlined,
+                color: _kPrimary, size: 18),
+          ),
+          title: Text(
+            card.title,
             style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 13,
-              height: 1.6,
-              color: Colors.black87,
+              fontFamily: 'Outfit',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: _kDarkText,
             ),
           ),
-          if (card.foodExamples.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: card.foodExamples
-                  .map(
-                    (food) => Chip(
-                      label: Text(
-                        food,
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 11,
-                          color: AppTheme.primaryWellness,
+          children: [
+            Text(
+              card.body,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 13,
+                height: 1.6,
+                color: _kBodyText,
+              ),
+            ),
+            if (card.foodExamples.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: card.foodExamples
+                    .map(
+                      (food) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0x1A5152B9),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          food,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: _kPrimary,
+                          ),
                         ),
                       ),
-                      backgroundColor: AppTheme.primaryLight,
-                      side: BorderSide.none,
-                      padding: EdgeInsets.zero,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  )
-                  .toList(),
-            ),
+                    )
+                    .toList(),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

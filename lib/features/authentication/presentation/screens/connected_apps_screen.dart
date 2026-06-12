@@ -37,6 +37,19 @@ class _ConnectedAppsScreenState extends ConsumerState<ConnectedAppsScreen> {
           'Connected Apps',
           style: TextStyle(fontFamily: 'Outfit', color: AppTheme.textDark, fontWeight: FontWeight.bold),
         ),
+        actions: [
+          TextButton(
+            onPressed: _finishOnboarding,
+            child: const Text(
+              'Skip',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryWellness,
+              ),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(

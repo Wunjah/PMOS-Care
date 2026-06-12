@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../providers/auth_provider.dart';
 
-class SkinProfileScreen extends StatefulWidget {
+class SkinProfileScreen extends ConsumerStatefulWidget {
   const SkinProfileScreen({super.key});
 
   @override
-  State<SkinProfileScreen> createState() => _SkinProfileScreenState();
+  ConsumerState<SkinProfileScreen> createState() => _SkinProfileScreenState();
 }
 
-class _SkinProfileScreenState extends State<SkinProfileScreen> {
+class _SkinProfileScreenState extends ConsumerState<SkinProfileScreen> {
   String _selectedSeverity = 'Moderate';
   final List<String> _affectedAreas = ['Jawline', 'Cheeks'];
 
@@ -93,7 +95,21 @@ class _SkinProfileScreenState extends State<SkinProfileScreen> {
                 valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryWellness),
               ),
             ),
-          )
+          ),
+          TextButton(
+            onPressed: () async {
+              await ref.read(authStateNotifierProvider.notifier).completeOnboarding();
+              if (context.mounted) context.go('/home');
+            },
+            child: const Text(
+              'Skip',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryWellness,
+              ),
+            ),
+          ),
         ],
       ),
       body: SafeArea(

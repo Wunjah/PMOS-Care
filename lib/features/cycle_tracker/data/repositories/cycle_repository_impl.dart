@@ -48,6 +48,22 @@ class CycleRepositoryImpl implements CycleRepository {
   }
 
   @override
+  Future<void> updateCycle(CycleEntity cycle) async {
+    final cycleModel = CycleModel.fromEntity(cycle);
+    final isConnected = await networkInfo.isConnected;
+
+    await localDataSource.cacheSingleCycle(cycleModel, needsSync: !isConnected);
+
+    if (isConnected) {
+      try {
+        await remoteDataSource.updateRemoteCycle(cycleModel);
+      } catch (_) {
+        await localDataSource.cacheSingleCycle(cycleModel, needsSync: true);
+      }
+    }
+  }
+
+  @override
   Future<void> deleteCycle(String cycleId) async {
     final isConnected = await networkInfo.isConnected;
     await localDataSource.removeCachedCycle(cycleId, needsSyncDelete: !isConnected);
