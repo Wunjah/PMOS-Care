@@ -17,7 +17,7 @@ class _HealthProfileSetupScreenState extends ConsumerState<HealthProfileSetupScr
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
   
-  String _country = 'Cameroon';
+  final String _country = 'Cameroon';
   String _region = 'Centre';
   String _pmosStatus = 'Diagnosed';
   

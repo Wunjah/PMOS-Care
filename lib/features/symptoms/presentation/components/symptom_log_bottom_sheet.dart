@@ -453,11 +453,13 @@ class _SymptomLogBottomSheetState extends ConsumerState<SymptomLogBottomSheet> {
                 clientUpdatedTimestamp: DateTime.now(),
               );
 
+              final nav = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
               try {
                 await ref.read(symptomStateNotifierProvider.notifier).addSymptomLog(log);
                 if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  nav.pop();
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('Symptom log saved successfully!'),
                       backgroundColor: AppTheme.glycemicLow,
@@ -466,7 +468,7 @@ class _SymptomLogBottomSheetState extends ConsumerState<SymptomLogBottomSheet> {
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('Error saving symptoms: $e'),
                       backgroundColor: AppTheme.glycemicHigh,

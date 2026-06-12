@@ -1,1 +1,26 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"pmos-care","appId":"1:630482464919:android:2b4e1d5497163186cd39d2","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"pmos-care","configurations":{"android":"1:630482464919:android:2b4e1d5497163186cd39d2","web":"1:630482464919:web:5d04cd2a3e7f5302cd39d2"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "pmos-care",
+          "appId": "1:630482464919:android:2b4e1d5497163186cd39d2",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "pmos-care",
+          "configurations": {
+            "android": "1:630482464919:android:2b4e1d5497163186cd39d2",
+            "web": "1:630482464919:web:5d04cd2a3e7f5302cd39d2"
+          }
+        }
+      }
+    }
+  }
+}

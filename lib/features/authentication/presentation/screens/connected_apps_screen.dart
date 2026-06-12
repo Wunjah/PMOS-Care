@@ -17,9 +17,16 @@ class _ConnectedAppsScreenState extends ConsumerState<ConnectedAppsScreen> {
   bool _syncBloodGlucose = false;
   bool _googleFitConnected = false;
 
-  void _finishOnboarding() {
-    ref.read(authStateNotifierProvider.notifier).completeOnboarding();
-    context.go('/home');
+  Future<void> _finishOnboarding() async {
+    final notifier = ref.read(authStateNotifierProvider.notifier);
+    await notifier.saveConnectedApps(
+      syncHeartRate: _syncHeartRate,
+      syncDailySteps: _syncDailySteps,
+      syncBloodGlucose: _syncBloodGlucose,
+      googleFitConnected: _googleFitConnected,
+    );
+    await notifier.completeOnboarding();
+    if (mounted) context.go('/home');
   }
 
   @override

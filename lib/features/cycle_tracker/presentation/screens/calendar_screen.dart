@@ -1,9 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/cycle_provider.dart';
 import '../../domain/entities/cycle_entity.dart';
+import '../../../authentication/presentation/providers/auth_provider.dart';
 
 // ─── Design tokens (Figma node 68:402) ───────────────────────────────────────
 
@@ -306,44 +308,52 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 ),
               ],
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: _kPrimary.withOpacity(0.2), width: 2),
+            child: Builder(builder: (context) {
+              final authState = ref.watch(authStateNotifierProvider);
+              final user = authState is AuthAuthenticated ? authState.user : null;
+              final initial = (user?.displayName.isNotEmpty == true) ? user!.displayName[0].toUpperCase() : 'U';
+              return Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => context.push('/profile'),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: _kPrimary.withOpacity(0.2), width: 2),
+                      ),
+                      child: user?.photoUrl != null
+                          ? ClipOval(child: Image.network(user!.photoUrl!, fit: BoxFit.cover, width: 40, height: 40,
+                              errorBuilder: (_, __, ___) => CircleAvatar(backgroundColor: const Color(0xFFE2DFFF),
+                                child: Text(initial, style: const TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold, color: _kPrimary, fontSize: 16)))))
+                          : CircleAvatar(backgroundColor: const Color(0xFFE2DFFF),
+                              child: Text(initial, style: const TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold, color: _kPrimary, fontSize: 16))),
+                    ),
                   ),
-                  child: const CircleAvatar(
-                    backgroundColor: Color(0xFFE2DFFF),
-                    child: Icon(Icons.person, color: _kPrimary, size: 20),
+                  const SizedBox(width: 16),
+                  const Text(
+                    'PMOS Care',
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: _kPrimary,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                const Text(
-                  'PMOS Care',
-                  style: TextStyle(
-                    fontFamily: 'Outfit',
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    color: _kPrimary,
+                  const Spacer(),
+                  SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: IconButton(
+                      onPressed: () => context.go('/appointments'),
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.notifications_outlined, color: _kDarkText, size: 22),
+                    ),
                   ),
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: IconButton(
-                    onPressed: () {},
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(Icons.notifications_outlined,
-                        color: _kDarkText, size: 22),
-                  ),
-                ),
-              ],
-            ),
+                ],
+              );
+            }),
           ),
         ),
       ),
@@ -527,7 +537,40 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ),
             const Spacer(),
             GestureDetector(
-              onTap: () {},
+              onTap: () {
+                final now = DateTime.now();
+                final todayCycles = ref.read(cycleStateNotifierProvider).cycles.where((c) {
+                  final s = c.startDate;
+                  return s.year == now.year && s.month == now.month && s.day == now.day && !c.isPredicted;
+                }).toList();
+                if (todayCycles.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("No logs for today to clear."), duration: Duration(seconds: 2)),
+                  );
+                  return;
+                }
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    title: const Text("Clear Today's Logs?", style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold)),
+                    content: Text("This will remove ${todayCycles.length} log(s) for today.", style: const TextStyle(fontFamily: 'Inter')),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEB505E)),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          for (final c in todayCycles) {
+                            ref.read(cycleStateNotifierProvider.notifier).removeCycleLog(c.id);
+                          }
+                        },
+                        child: const Text("Clear All", style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                );
+              },
               child: const Text(
                 'Clear all',
                 style: TextStyle(

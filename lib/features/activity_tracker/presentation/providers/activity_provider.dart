@@ -86,7 +86,7 @@ class ActivityNotifier extends StateNotifier<ActivityState> {
       list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       
       final streak = _calculateStreak(list);
-      final totalCals = list.fold<double>(0, (sum, item) => sum + item.caloriesBurned);
+      final totalCals = list.fold<double>(0, (acc, item) => acc + item.caloriesBurned);
 
       state = ActivityState(
         isLoading: false,

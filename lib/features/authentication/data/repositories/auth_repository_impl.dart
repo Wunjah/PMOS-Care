@@ -13,6 +13,33 @@ class AuthRepositoryImpl implements AuthRepository {
     required this.localDataSource,
   });
 
+  UserModel _buildModel(UserModel src, {required bool onboarding}) {
+    return UserModel(
+      uid: src.uid,
+      phoneNumber: src.phoneNumber,
+      email: src.email,
+      displayName: src.displayName,
+      photoUrl: src.photoUrl,
+      isOnboardingCompleted: onboarding || src.isOnboardingCompleted,
+      role: src.role,
+      age: src.age,
+      heightCm: src.heightCm,
+      weightKg: src.weightKg,
+      country: src.country,
+      region: src.region,
+      pmosDiagnosisStatus: src.pmosDiagnosisStatus,
+      medications: src.medications,
+      allergies: src.allergies,
+      goals: src.goals,
+      specialty: src.specialty,
+      hospitalClinic: src.hospitalClinic,
+      yearsExperience: src.yearsExperience,
+      licenseNumber: src.licenseNumber,
+      biometricLockEnabled: src.biometricLockEnabled,
+      notificationsEnabled: src.notificationsEnabled,
+    );
+  }
+
   @override
   Future<void> sendOtp({
     required String phoneNumber,
@@ -35,30 +62,10 @@ class AuthRepositoryImpl implements AuthRepository {
       verificationId: verificationId,
       smsCode: smsCode,
     );
-
-    final onboardingCompleted = await localDataSource.isOnboardingCompleted();
-    final finalUserModel = UserModel(
-      uid: userModel.uid,
-      phoneNumber: userModel.phoneNumber,
-      email: userModel.email,
-      displayName: userModel.displayName,
-      photoUrl: userModel.photoUrl,
-      isOnboardingCompleted: onboardingCompleted,
-      age: userModel.age,
-      heightCm: userModel.heightCm,
-      weightKg: userModel.weightKg,
-      country: userModel.country,
-      region: userModel.region,
-      pmosDiagnosisStatus: userModel.pmosDiagnosisStatus,
-      medications: userModel.medications,
-      allergies: userModel.allergies,
-      goals: userModel.goals,
-      biometricLockEnabled: userModel.biometricLockEnabled,
-      notificationsEnabled: userModel.notificationsEnabled,
-    );
-
-    await localDataSource.cacheUser(finalUserModel);
-    return finalUserModel;
+    final onboarding = await localDataSource.isOnboardingCompleted();
+    final result = _buildModel(userModel, onboarding: onboarding);
+    await localDataSource.cacheUser(result);
+    return result;
   }
 
   @override
@@ -67,37 +74,19 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String phone,
     required String password,
+    String role = 'patient',
   }) async {
     final userModel = await remoteDataSource.signUpWithEmailAndPassword(
       name: name,
       email: email,
       phone: phone,
       password: password,
+      role: role,
     );
-
-    final onboardingCompleted = await localDataSource.isOnboardingCompleted();
-    final finalUserModel = UserModel(
-      uid: userModel.uid,
-      phoneNumber: userModel.phoneNumber,
-      email: userModel.email,
-      displayName: userModel.displayName,
-      photoUrl: userModel.photoUrl,
-      isOnboardingCompleted: onboardingCompleted,
-      age: userModel.age,
-      heightCm: userModel.heightCm,
-      weightKg: userModel.weightKg,
-      country: userModel.country,
-      region: userModel.region,
-      pmosDiagnosisStatus: userModel.pmosDiagnosisStatus,
-      medications: userModel.medications,
-      allergies: userModel.allergies,
-      goals: userModel.goals,
-      biometricLockEnabled: userModel.biometricLockEnabled,
-      notificationsEnabled: userModel.notificationsEnabled,
-    );
-
-    await localDataSource.cacheUser(finalUserModel);
-    return finalUserModel;
+    final onboarding = await localDataSource.isOnboardingCompleted();
+    final result = _buildModel(userModel, onboarding: onboarding);
+    await localDataSource.cacheUser(result);
+    return result;
   }
 
   @override
@@ -109,59 +98,19 @@ class AuthRepositoryImpl implements AuthRepository {
       email: email,
       password: password,
     );
-
-    final onboardingCompleted = await localDataSource.isOnboardingCompleted();
-    final finalUserModel = UserModel(
-      uid: userModel.uid,
-      phoneNumber: userModel.phoneNumber,
-      email: userModel.email,
-      displayName: userModel.displayName,
-      photoUrl: userModel.photoUrl,
-      isOnboardingCompleted: onboardingCompleted || userModel.isOnboardingCompleted,
-      age: userModel.age,
-      heightCm: userModel.heightCm,
-      weightKg: userModel.weightKg,
-      country: userModel.country,
-      region: userModel.region,
-      pmosDiagnosisStatus: userModel.pmosDiagnosisStatus,
-      medications: userModel.medications,
-      allergies: userModel.allergies,
-      goals: userModel.goals,
-      biometricLockEnabled: userModel.biometricLockEnabled,
-      notificationsEnabled: userModel.notificationsEnabled,
-    );
-
-    await localDataSource.cacheUser(finalUserModel);
-    return finalUserModel;
+    final onboarding = await localDataSource.isOnboardingCompleted();
+    final result = _buildModel(userModel, onboarding: onboarding);
+    await localDataSource.cacheUser(result);
+    return result;
   }
 
   @override
   Future<UserEntity> signInWithGoogle() async {
     final userModel = await remoteDataSource.signInWithGoogle();
-
-    final onboardingCompleted = await localDataSource.isOnboardingCompleted();
-    final finalUserModel = UserModel(
-      uid: userModel.uid,
-      phoneNumber: userModel.phoneNumber,
-      email: userModel.email,
-      displayName: userModel.displayName,
-      photoUrl: userModel.photoUrl,
-      isOnboardingCompleted: onboardingCompleted || userModel.isOnboardingCompleted,
-      age: userModel.age,
-      heightCm: userModel.heightCm,
-      weightKg: userModel.weightKg,
-      country: userModel.country,
-      region: userModel.region,
-      pmosDiagnosisStatus: userModel.pmosDiagnosisStatus,
-      medications: userModel.medications,
-      allergies: userModel.allergies,
-      goals: userModel.goals,
-      biometricLockEnabled: userModel.biometricLockEnabled,
-      notificationsEnabled: userModel.notificationsEnabled,
-    );
-
-    await localDataSource.cacheUser(finalUserModel);
-    return finalUserModel;
+    final onboarding = await localDataSource.isOnboardingCompleted();
+    final result = _buildModel(userModel, onboarding: onboarding);
+    await localDataSource.cacheUser(result);
+    return result;
   }
 
   @override
@@ -196,27 +145,9 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     final onboarding = await localDataSource.isOnboardingCompleted();
-    final finalUser = UserModel(
-      uid: remoteUser.uid,
-      phoneNumber: remoteUser.phoneNumber,
-      email: remoteUser.email,
-      displayName: remoteUser.displayName,
-      photoUrl: remoteUser.photoUrl,
-      isOnboardingCompleted: onboarding || remoteUser.isOnboardingCompleted,
-      age: remoteUser.age,
-      heightCm: remoteUser.heightCm,
-      weightKg: remoteUser.weightKg,
-      country: remoteUser.country,
-      region: remoteUser.region,
-      pmosDiagnosisStatus: remoteUser.pmosDiagnosisStatus,
-      medications: remoteUser.medications,
-      allergies: remoteUser.allergies,
-      goals: remoteUser.goals,
-      biometricLockEnabled: remoteUser.biometricLockEnabled,
-      notificationsEnabled: remoteUser.notificationsEnabled,
-    );
-    await localDataSource.cacheUser(finalUser);
-    return finalUser;
+    final result = _buildModel(remoteUser, onboarding: onboarding);
+    await localDataSource.cacheUser(result);
+    return result;
   }
 
   @override

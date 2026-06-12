@@ -22,6 +22,9 @@ import '../../features/education/presentation/screens/education_hub_screen.dart'
 import '../../features/providers/presentation/screens/specialist_directory_screen.dart';
 import '../../features/reports/presentation/screens/reports_hub_screen.dart';
 import '../theme/app_theme.dart';
+import '../../features/authentication/presentation/screens/profile_screen.dart';
+import '../../features/authentication/presentation/screens/specialist_onboarding_screen.dart';
+import '../../features/providers/presentation/screens/appointments_list_screen.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final GlobalKey<NavigatorState> shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
@@ -86,6 +89,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/education',
         builder: (context, state) => const EducationHubScreen(),
+      ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/specialist-onboarding',
+        builder: (context, state) => const SpecialistOnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/appointments',
+        builder: (context, state) => const AppointmentsListScreen(),
       ),
       ShellRoute(
         navigatorKey: shellNavigatorKey,

@@ -5,7 +5,8 @@ class UserEntity {
   final String displayName;
   final String? photoUrl;
   final bool isOnboardingCompleted;
-  
+  final String role; // 'patient' | 'doctor'
+
   // Health Profile Fields
   final int? age;
   final double? heightCm;
@@ -16,7 +17,23 @@ class UserEntity {
   final List<String> medications;
   final List<String> allergies;
   final List<String> goals;
-  
+
+  // Specialist Profile Fields (for doctors)
+  final String? specialty;
+  final String? hospitalClinic;
+  final int? yearsExperience;
+  final String? licenseNumber;
+
+  // Skin Profile Fields
+  final String? skinAcneSeverity;
+  final List<String> skinAffectedAreas;
+
+  // Connected Apps Fields
+  final bool syncHeartRate;
+  final bool syncDailySteps;
+  final bool syncBloodGlucose;
+  final bool googleFitConnected;
+
   // Settings
   final bool biometricLockEnabled;
   final bool notificationsEnabled;
@@ -28,6 +45,7 @@ class UserEntity {
     required this.displayName,
     this.photoUrl,
     required this.isOnboardingCompleted,
+    this.role = 'patient',
     this.age,
     this.heightCm,
     this.weightKg,
@@ -37,9 +55,21 @@ class UserEntity {
     this.medications = const [],
     this.allergies = const [],
     this.goals = const [],
+    this.specialty,
+    this.hospitalClinic,
+    this.yearsExperience,
+    this.licenseNumber,
+    this.skinAcneSeverity,
+    this.skinAffectedAreas = const [],
+    this.syncHeartRate = true,
+    this.syncDailySteps = true,
+    this.syncBloodGlucose = false,
+    this.googleFitConnected = false,
     this.biometricLockEnabled = false,
     this.notificationsEnabled = false,
   });
+
+  bool get isDoctor => role == 'doctor';
 
   UserEntity copyWith({
     String? uid,
@@ -48,6 +78,7 @@ class UserEntity {
     String? displayName,
     String? photoUrl,
     bool? isOnboardingCompleted,
+    String? role,
     int? age,
     double? heightCm,
     double? weightKg,
@@ -57,6 +88,16 @@ class UserEntity {
     List<String>? medications,
     List<String>? allergies,
     List<String>? goals,
+    String? specialty,
+    String? hospitalClinic,
+    int? yearsExperience,
+    String? licenseNumber,
+    String? skinAcneSeverity,
+    List<String>? skinAffectedAreas,
+    bool? syncHeartRate,
+    bool? syncDailySteps,
+    bool? syncBloodGlucose,
+    bool? googleFitConnected,
     bool? biometricLockEnabled,
     bool? notificationsEnabled,
   }) {
@@ -67,6 +108,7 @@ class UserEntity {
       displayName: displayName ?? this.displayName,
       photoUrl: photoUrl ?? this.photoUrl,
       isOnboardingCompleted: isOnboardingCompleted ?? this.isOnboardingCompleted,
+      role: role ?? this.role,
       age: age ?? this.age,
       heightCm: heightCm ?? this.heightCm,
       weightKg: weightKg ?? this.weightKg,
@@ -76,9 +118,18 @@ class UserEntity {
       medications: medications ?? this.medications,
       allergies: allergies ?? this.allergies,
       goals: goals ?? this.goals,
+      specialty: specialty ?? this.specialty,
+      hospitalClinic: hospitalClinic ?? this.hospitalClinic,
+      yearsExperience: yearsExperience ?? this.yearsExperience,
+      licenseNumber: licenseNumber ?? this.licenseNumber,
+      skinAcneSeverity: skinAcneSeverity ?? this.skinAcneSeverity,
+      skinAffectedAreas: skinAffectedAreas ?? this.skinAffectedAreas,
+      syncHeartRate: syncHeartRate ?? this.syncHeartRate,
+      syncDailySteps: syncDailySteps ?? this.syncDailySteps,
+      syncBloodGlucose: syncBloodGlucose ?? this.syncBloodGlucose,
+      googleFitConnected: googleFitConnected ?? this.googleFitConnected,
       biometricLockEnabled: biometricLockEnabled ?? this.biometricLockEnabled,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
     );
   }
 }
-

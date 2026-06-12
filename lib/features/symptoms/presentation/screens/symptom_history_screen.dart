@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/symptom_entity.dart';
 import '../providers/symptom_provider.dart';
@@ -55,6 +56,10 @@ class SymptomHistoryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/home'),
+        ),
         title: const Text(
           'Symptom Tracker',
           style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold),
@@ -339,7 +344,3 @@ class SymptomHistoryScreen extends ConsumerWidget {
   }
 }
 
-extension on Widget {
-  // Simple padding helper
-  Widget py(double val) => Padding(padding: EdgeInsets.symmetric(vertical: val), child: this);
-}

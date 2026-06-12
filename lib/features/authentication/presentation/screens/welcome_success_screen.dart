@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class WelcomeSuccessScreen extends StatelessWidget {
@@ -9,6 +10,14 @@ class WelcomeSuccessScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppTheme.textDark),
+          onPressed: () => context.go('/login'),
+        ),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
@@ -129,7 +138,14 @@ class WelcomeSuccessScreen extends StatelessWidget {
 
               // Support Text
               GestureDetector(
-                onTap: () {},
+                onTap: () async {
+                  final uri = Uri(
+                    scheme: 'mailto',
+                    path: 'support@pmoscare.org',
+                    queryParameters: {'subject': 'PMOS Care App Support'},
+                  );
+                  if (await canLaunchUrl(uri)) await launchUrl(uri);
+                },
                 child: const Text(
                   'Need help? Contact Support',
                   textAlign: TextAlign.center,

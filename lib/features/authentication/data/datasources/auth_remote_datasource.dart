@@ -21,6 +21,7 @@ abstract class AuthRemoteDataSource {
     required String email,
     required String phone,
     required String password,
+    String role = 'patient',
   });
 
   Future<UserModel> signInWithEmailAndPassword({
@@ -119,6 +120,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String email,
     required String phone,
     required String password,
+    String role = 'patient',
   }) async {
     final credential = await _firebaseAuth.createUserWithEmailAndPassword(
       email: email,
@@ -136,6 +138,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       displayName: name,
       photoUrl: null,
       isOnboardingCompleted: false,
+      role: role,
     );
 
     await saveUserProfile(userModel);

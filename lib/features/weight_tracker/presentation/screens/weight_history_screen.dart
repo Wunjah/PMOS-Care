@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/weight_provider.dart';
 
@@ -130,6 +131,10 @@ class WeightHistoryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/home'),
+        ),
         title: const Text(
           'Weight & Waist Logger',
           style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold),
@@ -263,7 +268,7 @@ class WeightHistoryScreen extends ConsumerWidget {
                               child: ListTile(
                                 leading: const Icon(Icons.scale, color: AppTheme.primaryWellness),
                                 title: Text(
-                                  '$dateStr',
+                                  dateStr,
                                   style: const TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold),
                                 ),
                                 subtitle: Text(

@@ -107,11 +107,11 @@ class _ReportsHubScreenState extends ConsumerState<ReportsHubScreen>
 
       // Get user details
       final authState = ref.read(authStateNotifierProvider);
-      String patientName = 'Wumjah';
-      String patientEmail = 'wumjah@pmoscare.org';
+      String patientName = 'Patient';
+      String patientEmail = '';
       if (authState is AuthAuthenticated) {
-        patientName = authState.user.displayName;
-        patientEmail = authState.user.email ?? 'wumjah@pmoscare.org';
+        patientName = authState.user.displayName.isNotEmpty ? authState.user.displayName : 'Patient';
+        patientEmail = authState.user.email ?? '';
       }
 
       pdf.addPage(

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../authentication/presentation/providers/auth_provider.dart';
 import '../../../providers/presentation/providers/appointment_provider.dart';
 import '../../../providers/domain/entities/appointment_entity.dart';
@@ -98,11 +97,22 @@ class HomeScreen extends ConsumerWidget {
 
 // ─── Top App Bar ─────────────────────────────────────────────────────────────
 
-class _TopAppBar extends StatelessWidget {
+class _TopAppBar extends ConsumerWidget {
   const _TopAppBar();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateNotifierProvider);
+    final user = authState is AuthAuthenticated ? authState.user : null;
+    final initial = (user?.displayName.isNotEmpty == true)
+        ? user!.displayName[0].toUpperCase()
+        : 'U';
+
+    final appointmentState = ref.watch(appointmentStateNotifierProvider);
+    final upcomingCount = appointmentState.appointments
+        .where((a) => a.dateTime.isAfter(DateTime.now()) && a.status != 'Cancelled')
+        .length;
+
     return Positioned(
       top: 0,
       left: 0,
@@ -124,19 +134,34 @@ class _TopAppBar extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: _kPrimary.withOpacity(0.2),
-                      width: 2,
+                GestureDetector(
+                  onTap: () => context.push('/profile'),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _kPrimary.withOpacity(0.2), width: 2),
                     ),
-                  ),
-                  child: const CircleAvatar(
-                    backgroundColor: Color(0xFFE8E9F8),
-                    child: Icon(Icons.person, color: _kPrimary, size: 20),
+                    child: user?.photoUrl != null
+                        ? ClipOval(
+                            child: Image.network(
+                              user!.photoUrl!,
+                              fit: BoxFit.cover,
+                              width: 40,
+                              height: 40,
+                              errorBuilder: (_, __, ___) => CircleAvatar(
+                                backgroundColor: const Color(0xFFE8E9F8),
+                                child: Text(initial,
+                                    style: const TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold, color: _kPrimary, fontSize: 16)),
+                              ),
+                            ),
+                          )
+                        : CircleAvatar(
+                            backgroundColor: const Color(0xFFE8E9F8),
+                            child: Text(initial,
+                                style: const TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold, color: _kPrimary, fontSize: 16)),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -150,18 +175,31 @@ class _TopAppBar extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: IconButton(
-                    onPressed: () {},
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      color: _kDarkText,
-                      size: 22,
+                Stack(
+                  children: [
+                    SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: IconButton(
+                        onPressed: () => context.go('/appointments'),
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(Icons.notifications_outlined, color: _kDarkText, size: 22),
+                      ),
                     ),
-                  ),
+                    if (upcomingCount > 0)
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFEB505E),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),

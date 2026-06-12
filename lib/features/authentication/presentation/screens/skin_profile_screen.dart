@@ -351,7 +351,13 @@ class _SkinProfileScreenState extends ConsumerState<SkinProfileScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => context.go('/connected-apps'),
+                      onPressed: () async {
+                        await ref.read(authStateNotifierProvider.notifier).saveSkinProfile(
+                          severity: _selectedSeverity,
+                          affectedAreas: List.from(_affectedAreas),
+                        );
+                        if (context.mounted) context.go('/connected-apps');
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryWellness,
                         foregroundColor: Colors.white,

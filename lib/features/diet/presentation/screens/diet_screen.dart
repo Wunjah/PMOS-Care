@@ -1,18 +1,16 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/network/gemini_service.dart';
-import '../../../../core/theme/app_theme.dart';
+import 'package:intl/intl.dart';
+import '../../../../core/network/ai_service.dart';
 import '../providers/diet_provider.dart';
 
-// ─── Design tokens (matching home & calendar screens) ────────────────────────
+// ── Design tokens ─────────────────────────────────────────────────────────────
 const _kPrimary = Color(0xFF5152B9);
 const _kDarkText = Color(0xFF191C20);
 const _kBodyText = Color(0xFF464552);
 const _kMutedText = Color(0xFF777684);
 const _kBg = Color(0xFFF8F9FF);
-const _kGlass = Color(0xB3FFFFFF);
-const _kGlassBorder = Color(0x80FFFFFF);
 const _kDivider = Color(0xFFE7E8EE);
 const _kTealDark = Color(0xFF00696A);
 const _kTealBg = Color(0x1A45A8A9);
@@ -20,6 +18,98 @@ const _kTealBorder = Color(0x3345A8A9);
 const _kTeal = Color(0xFF45A8A9);
 const _kProgressTrack = Color(0xFFECEEF3);
 
+// ── Recommended meal data ─────────────────────────────────────────────────────
+class _RecommendedMeal {
+  final String name;
+  final String subtitle;
+  final int calories;
+  final List<Color> gradient;
+  final IconData icon;
+  final String badge;
+  final Color badgeColor;
+
+  const _RecommendedMeal({
+    required this.name,
+    required this.subtitle,
+    required this.calories,
+    required this.gradient,
+    required this.icon,
+    required this.badge,
+    required this.badgeColor,
+  });
+}
+
+const _kMeals = [
+  _RecommendedMeal(
+    name: 'Ndolè',
+    subtitle: 'Bitterleaf Stew',
+    calories: 285,
+    gradient: [Color(0xFF2D6A4F), Color(0xFF52B788)],
+    icon: Icons.eco,
+    badge: 'PMOS-Friendly',
+    badgeColor: Color(0xFF2D6A4F),
+  ),
+  _RecommendedMeal(
+    name: 'Eru & Waterleaf',
+    subtitle: 'Iron-rich greens',
+    calories: 210,
+    gradient: [Color(0xFF1B4332), Color(0xFF40916C)],
+    icon: Icons.spa,
+    badge: 'High Fiber',
+    badgeColor: Color(0xFF1B4332),
+  ),
+  _RecommendedMeal(
+    name: 'Njama Njama',
+    subtitle: 'Huckleberry greens',
+    calories: 165,
+    gradient: [Color(0xFF023E8A), Color(0xFF0096C7)],
+    icon: Icons.local_florist,
+    badge: 'Low GI',
+    badgeColor: Color(0xFF023E8A),
+  ),
+  _RecommendedMeal(
+    name: 'Grilled Fish',
+    subtitle: 'Omega-3 & protein',
+    calories: 320,
+    gradient: [Color(0xFF9D4EDD), Color(0xFFC77DFF)],
+    icon: Icons.set_meal,
+    badge: 'High Protein',
+    badgeColor: Color(0xFF9D4EDD),
+  ),
+  _RecommendedMeal(
+    name: 'Plantain Fufu',
+    subtitle: 'Low-GI staple',
+    calories: 240,
+    gradient: [Color(0xFFD4A017), Color(0xFFE9C46A)],
+    icon: Icons.grain,
+    badge: 'Energy',
+    badgeColor: Color(0xFFB7791F),
+  ),
+  _RecommendedMeal(
+    name: 'Achu Soup',
+    subtitle: 'Cocoyam & spices',
+    calories: 310,
+    gradient: [Color(0xFFAE2012), Color(0xFFE85D04)],
+    icon: Icons.soup_kitchen,
+    badge: 'Traditional',
+    badgeColor: Color(0xFFAE2012),
+  ),
+];
+
+// ── Category chip data ────────────────────────────────────────────────────────
+const _categoryLabels = <String, String>{
+  'All': 'All',
+  'leafy_vegetables': 'Leafy Veg',
+  'starchy_staples': 'Staples',
+  'proteins': 'Proteins',
+  'fruits': 'Fruits',
+  'soups_stews': 'Soups & Stews',
+  'drinks': 'Drinks',
+  'cooking_fats': 'Fats',
+  'snacks': 'Snacks',
+};
+
+// ── Screen ────────────────────────────────────────────────────────────────────
 class DietScreen extends ConsumerStatefulWidget {
   const DietScreen({super.key});
 
@@ -27,312 +117,248 @@ class DietScreen extends ConsumerStatefulWidget {
   ConsumerState<DietScreen> createState() => _DietScreenState();
 }
 
-class _DietScreenState extends ConsumerState<DietScreen>
-    with SingleTickerProviderStateMixin {
+class _DietScreenState extends ConsumerState<DietScreen> with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   String _searchQuery = '';
   String _selectedCategory = 'All';
   String _selectedSuitability = 'All';
 
-  static const _categoryLabels = <String, String>{
-    'All': 'All',
-    'leafy_vegetables': 'Leafy Veg',
-    'starchy_staples': 'Staples',
-    'proteins': 'Proteins',
-    'fruits': 'Fruits',
-    'soups_stews': 'Soups & Stews',
-    'drinks': 'Drinks',
-    'cooking_fats': 'Fats',
-    'snacks': 'Snacks',
-  };
-
+  // AI Chef state
   final List<Map<String, String>> _chatMessages = [];
   final _chatController = TextEditingController();
-  String _selectedDish = 'Ndole';
   bool _isAiTyping = false;
+  final ScrollController _chatScrollController = ScrollController();
+  String _aiApiKey = '';
 
-  final Map<String, Map<String, dynamic>> _recipes = {
-    'Ndole': {
-      'name': 'Ndole (Bitterleaf Stew)',
-      'ingredients':
-          'Bitterleaf, peanuts, onions, garlic, crayfish, fish/beef, healthy oil.',
-      'instructions':
-          'Boil raw peanuts, grind them. Wash bitterleaves to remove bitterness. Sauté onions, add peanuts and bitterleaves, simmer with fish/crayfish.',
-      'optimizations':
-          '✔ Swap palm/standard oil for olive or canola oil in very limited quantity.\n✔ Use lean fish or skinless chicken instead of fatty beef or tripe.\n✔ Pair with unripe boiled plantains or oatmeal fufu instead of high-glycemic white cassava fufu.',
-    },
-    'Achu': {
-      'name': 'Achu Soup & Taro',
-      'ingredients':
-          'Taro (cocoyam), limestone (kanwa), warm red oil, spices, fish/beef.',
-      'instructions':
-          'Boil cocoyam, pound into a smooth paste. Mix limestone water with warm red oil to emulsify yellow Achu soup, add spices.',
-      'optimizations':
-          '✔ Taro is high in fast carbs; reduce the portion size of Achu paste.\n✔ Minimise red palm oil in the yellow soup to reduce saturated fats.\n✔ Increase steamed fish and green vegetables on the side to lower overall glycaemic load.',
-    },
-    'Eru': {
-      'name': 'Eru & Waterleaf',
-      'ingredients':
-          'Eru leaves (Okok), waterleaf, palm oil, crayfish, hides (canda), fish/beef.',
-      'instructions':
-          'Slice waterleaf and Eru leaves. Cook waterleaf, add Eru, crayfish, canda, beef, and palm oil. Simmer until water evaporates.',
-      'optimizations':
-          '✔ Limit red palm oil to 1–2 tablespoons maximum.\n✔ Choose lean fish or skinless poultry instead of fatty meats.\n✔ Pair with oatmeal or plantain fufu rather than cassava fufu.',
-    },
-    'Rice & Stew': {
-      'name': 'Rice and Tomato/Beef Stew',
-      'ingredients':
-          'Local red or brown rice, fresh tomatoes, onions, garlic, ginger, spices, lean beef or fish, healthy oil.',
-      'instructions':
-          'Boil local red rice. Blend tomatoes, onions, garlic and ginger. Boil down tomato blend. Heat minimal oil, sauté onions, add tomato paste and cook. Add boiled beef/fish and simmer.',
-      'optimizations':
-          '✔ ALWAYS use local red rice or brown rice to lower the Glycaemic Index.\n✔ Limit cooking oil to 1–2 tablespoons to prevent excessive saturated fat intake.\n✔ Serve with steamed vegetables or garden egg salad to increase fibre.',
-    },
-    'Fufu & Njama Njama': {
-      'name': 'Fufu and Njama Njama (Huckleberry)',
-      'ingredients':
-          'Njama njama leaves, onions, tomatoes, fufu flour (oat or green plantain), optional lean chicken/fish.',
-      'instructions':
-          'Wash huckleberry leaves. Sauté onions and tomatoes, add leaves and steam. Prepare fufu by mixing oat flour or unripe plantain flour with boiling water until smooth.',
-      'optimizations':
-          '✔ Swap high-GI cassava fufu with plantain fufu or oatmeal fufu.\n✔ Limit added oils when frying the njama njama.\n✔ Add boiled eggs or grilled fish to improve hormone regulation.',
-    },
-  };
-
-  void _sendChatMessage() async {
-    final query = _chatController.text.trim();
-    if (query.isEmpty) return;
-
-    setState(() {
-      _chatMessages.add({'role': 'user', 'message': query});
-      _chatController.clear();
-      _isAiTyping = true;
-    });
-
-    final List<Map<String, dynamic>> geminiHistory = _chatMessages.map((msg) {
-      return {
-        'role': msg['role'] == 'user' ? 'user' : 'model',
-        'parts': [
-          {'text': msg['message'] ?? ''}
-        ],
-      };
-    }).toList();
-
-    final assistantMsgIndex = _chatMessages.length;
-    setState(() => _chatMessages.add({'role': 'assistant', 'message': ''}));
-
-    const systemInstruction =
-        'You are the PMOS Care AI Chef, specialising in optimising traditional Cameroonian cuisine for women with PMOS/PCOS. '
-        'Focus on dishes such as Ndole, Eru, Achu, Rice & Stew, Fufu & Njama Njama, Koki, and Mbanga. '
-        'Suggest swapping high-glycaemic staples (cassava fufu, white garri, white rice) with low-glycaemic alternatives '
-        '(boiled unripe plantain, oatmeal fufu, plantain fufu). '
-        'All recommendations MUST focus on Cameroonian foods. If you lack specific dish information, provide a link to '
-        'https://www.cameroonweb.com/CameroonHomePage/food/ or a relevant search query.';
-
-    final accumulated = StringBuffer();
-    bool hasError = false;
-
-    try {
-      final stream = GeminiService().queryGeminiStream(
-        geminiHistory,
-        systemInstruction: systemInstruction,
-      );
-
-      await for (final token in stream) {
-        if (!mounted) return;
-        if (token == 'Google AI is temporarily unavailable.') {
-          hasError = true;
-          accumulated
-            ..clear()
-            ..write('Google AI is temporarily unavailable.');
-          break;
-        }
-        accumulated.write(token);
-        setState(() {
-          _chatMessages[assistantMsgIndex]['message'] = accumulated.toString();
-          _isAiTyping = false;
-        });
-      }
-    } catch (_) {
-      hasError = true;
-      accumulated
-        ..clear()
-        ..write('Google AI is temporarily unavailable.');
-    }
-
-    if (!mounted) return;
-    if (hasError || accumulated.isEmpty) {
-      setState(() {
-        _chatMessages[assistantMsgIndex]['message'] =
-            'Google AI is temporarily unavailable.';
-        _isAiTyping = false;
-      });
-    }
-  }
+  // Meal log state
+  final _mealTypeOptions = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+  String _selectedMealType = 'Breakfast';
+  final _foodNameController = TextEditingController();
+  final _caloriesController = TextEditingController();
+  final _proteinController = TextEditingController();
+  final _fiberController = TextEditingController();
+  final _waterController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    GeminiService().loadApiKey();
+    _loadAiKey();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _chatController.dispose();
+    _chatScrollController.dispose();
+    _foodNameController.dispose();
+    _caloriesController.dispose();
+    _proteinController.dispose();
+    _fiberController.dispose();
+    _waterController.dispose();
     super.dispose();
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────────
+  Future<void> _loadAiKey() async {
+    await AIService().loadApiKey();
+    if (mounted) setState(() => _aiApiKey = AIService().apiKey);
+  }
+
+  Future<void> _sendMessage() async {
+    final text = _chatController.text.trim();
+    if (text.isEmpty || _isAiTyping) return;
+
+    _chatController.clear();
+    setState(() {
+      _chatMessages.add({'role': 'user', 'content': text});
+      _isAiTyping = true;
+      _chatMessages.add({'role': 'assistant', 'content': ''});
+    });
+    _scrollToBottom();
+
+    const systemPrompt = '''You are "PMOS Chef", a warm and expert AI nutrition coach specialized in Cameroonian cuisine and managing Polycystic Ovarian Syndrome (PCOS/PMOS) through diet. You help users understand how local Cameroonian foods affect their hormonal health.
+
+You give practical, culturally-sensitive advice about foods like ndolè, eru, njama njama, fufu, achu, plantains, garden eggs, bitter leaf, and other local dishes.
+
+Always be encouraging, specific, and explain the nutritional science in simple terms. For any meal or food question, describe its nutritional benefits or drawbacks for PMOS and suggest healthier modifications.''';
+
+    final history = _chatMessages
+        .where((m) => m['content']!.isNotEmpty)
+        .take(_chatMessages.length - 1)
+        .toList();
+
+    final stream = AIService().queryStream(history, systemPrompt: systemPrompt);
+    await for (final chunk in stream) {
+      if (!mounted) break;
+      setState(() {
+        final last = _chatMessages.last;
+        _chatMessages[_chatMessages.length - 1] = {
+          'role': 'assistant',
+          'content': last['content']! + chunk,
+        };
+      });
+      _scrollToBottom();
+    }
+
+    if (mounted) setState(() => _isAiTyping = false);
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  Future<void> _logMeal() async {
+    if (_foodNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a food name'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    await ref.read(mealLogStateNotifierProvider.notifier).addMealLog(
+          mealType: _selectedMealType,
+          foodName: _foodNameController.text.trim(),
+          calories: double.tryParse(_caloriesController.text) ?? 0,
+          proteinGrams: double.tryParse(_proteinController.text) ?? 0,
+          fiberGrams: double.tryParse(_fiberController.text) ?? 0,
+          waterMl: double.tryParse(_waterController.text) ?? 0,
+          date: DateTime.now(),
+        );
+
+    _foodNameController.clear();
+    _caloriesController.clear();
+    _proteinController.clear();
+    _fiberController.clear();
+    _waterController.clear();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Meal logged!'), backgroundColor: Colors.green),
+      );
+    }
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBg,
-      body: Column(
+      body: Stack(
         children: [
-          _buildHeader(),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildFoodGuide(),
-                _buildMealTracker(),
-                _buildDietaryAdvice(),
-                _buildAiKitchenGuide(),
-              ],
-            ),
+          Column(
+            children: [
+              const SizedBox(height: 120),
+              _buildTabBar(),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildFoodGuideTab(),
+                    _buildMealLogTab(),
+                    _buildAiChefTab(),
+                    _buildDietaryAdviceTab(),
+                  ],
+                ),
+              ),
+            ],
           ),
+          _buildHeader(),
         ],
       ),
     );
   }
 
-  // ── Frosted Header ────────────────────────────────────────────────────────────
+  // ── Header ────────────────────────────────────────────────────────────────
 
   Widget _buildHeader() {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          decoration: BoxDecoration(
-            color: _kBg.withOpacity(0.9),
-            border: const Border(bottom: BorderSide(color: _kDivider)),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
+    final mealState = ref.watch(mealLogStateNotifierProvider);
+    final todayMeals = mealState.mealLogs.where((m) {
+      final now = DateTime.now();
+      return m.timestamp.year == now.year && m.timestamp.month == now.month && m.timestamp.day == now.day;
+    }).toList();
+
+    final totalCal = todayMeals.fold<double>(0, (s, m) => s + m.calories);
+    final totalProt = todayMeals.fold<double>(0, (s, m) => s + m.proteinGrams);
+    final totalFiber = todayMeals.fold<double>(0, (s, m) => s + m.fiberGrams);
+
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF5152B9), Color(0xFF6C6DD1)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: _kTealBg,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.restaurant_outlined,
-                                      size: 11, color: _kTealDark),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'NUTRITION',
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: _kTealDark,
-                                      letterSpacing: 0.8,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'Diet & Nutrition',
+                            Text(
+                              'Nutrition',
                               style: TextStyle(
                                 fontFamily: 'Outfit',
+                                fontSize: 22,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 26,
-                                letterSpacing: -0.5,
-                                color: _kDarkText,
+                                color: Colors.white,
                               ),
                             ),
-                            const Text(
-                              'Cameroonian food guide & PMOS meal planning',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 12,
-                                color: _kMutedText,
-                              ),
+                            Text(
+                              'Your daily food guide',
+                              style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: Colors.white70),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: _kTealBg,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: _kTealBorder),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            DateFormat('MMM d').format(DateTime.now()),
+                            style: const TextStyle(fontFamily: 'Inter', fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600),
+                          ),
                         ),
-                        child: const Icon(Icons.restaurant_rounded,
-                            color: _kTeal, size: 20),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TabBar(
-                  controller: _tabController,
-                  labelColor: _kPrimary,
-                  unselectedLabelColor: _kMutedText,
-                  indicatorColor: _kPrimary,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  indicatorWeight: 2.5,
-                  dividerColor: Colors.transparent,
-                  labelStyle: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
-                  ),
-                  unselectedLabelStyle: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  tabs: const [
-                    Tab(
-                        icon: Icon(Icons.restaurant_outlined, size: 16),
-                        text: 'Food Guide'),
-                    Tab(
-                        icon: Icon(Icons.track_changes_outlined, size: 16),
-                        text: 'Tracker'),
-                    Tab(
-                        icon: Icon(Icons.tips_and_updates_outlined, size: 16),
-                        text: 'Advice'),
-                    Tab(
-                        icon: Icon(Icons.psychology_outlined, size: 16),
-                        text: 'AI Chef'),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        _buildMiniStat('${totalCal.round()}', 'kcal', Icons.local_fire_department),
+                        const SizedBox(width: 12),
+                        _buildMiniStat('${totalProt.round()}g', 'protein', Icons.fitness_center),
+                        const SizedBox(width: 12),
+                        _buildMiniStat('${totalFiber.round()}g', 'fiber', Icons.grass),
+                      ],
+                    ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -340,49 +366,105 @@ class _DietScreenState extends ConsumerState<DietScreen>
     );
   }
 
-  // ── Food Guide tab ────────────────────────────────────────────────────────────
+  Widget _buildMiniStat(String value, String label, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: Colors.white70),
+            const SizedBox(width: 6),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(value, style: const TextStyle(fontFamily: 'Outfit', fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                Text(label, style: const TextStyle(fontFamily: 'Inter', fontSize: 10, color: Colors.white70)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  Widget _buildFoodGuide() {
+  // ── Tab Bar ───────────────────────────────────────────────────────────────
+
+  Widget _buildTabBar() {
+    return Container(
+      color: _kBg,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: _kProgressTrack,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: TabBar(
+          controller: _tabController,
+          labelStyle: const TextStyle(fontFamily: 'Inter', fontSize: 11, fontWeight: FontWeight.w700),
+          unselectedLabelStyle: const TextStyle(fontFamily: 'Inter', fontSize: 11, fontWeight: FontWeight.w500),
+          labelColor: Colors.white,
+          unselectedLabelColor: _kMutedText,
+          indicator: BoxDecoration(
+            color: _kPrimary,
+            borderRadius: BorderRadius.circular(9),
+            boxShadow: [BoxShadow(color: _kPrimary.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 2))],
+          ),
+          indicatorSize: TabBarIndicatorSize.tab,
+          dividerColor: Colors.transparent,
+          tabs: const [
+            Tab(text: 'Food Guide'),
+            Tab(text: 'Meal Log'),
+            Tab(text: 'AI Chef'),
+            Tab(text: 'Advice'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Food Guide Tab ────────────────────────────────────────────────────────
+
+  Widget _buildFoodGuideTab() {
     final foodsAsync = ref.watch(foodsProvider);
-
     return foodsAsync.when(
-      loading: () =>
-          const Center(child: CircularProgressIndicator(color: _kPrimary)),
-      error: (e, _) => Center(child: Text('Error loading foods: $e')),
+      loading: () => const Center(child: CircularProgressIndicator(color: _kPrimary)),
+      error: (e, _) => Center(child: Text('Failed to load foods: $e')),
       data: (foods) {
         final filtered = foods.where((f) {
-          final matchesSearch = _searchQuery.isEmpty ||
-              f.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-              f.localName.toLowerCase().contains(_searchQuery.toLowerCase());
-          final matchesCategory =
-              _selectedCategory == 'All' || f.category == _selectedCategory;
-          final matchesSuitability =
-              _selectedSuitability == 'All' || f.suitability == _selectedSuitability;
-          return matchesSearch && matchesCategory && matchesSuitability;
+          final matchCat = _selectedCategory == 'All' || f.category == _selectedCategory;
+          final matchSuit = _selectedSuitability == 'All' || f.suitability == _selectedSuitability;
+          final matchQuery = _searchQuery.isEmpty || f.name.toLowerCase().contains(_searchQuery.toLowerCase()) || f.localName.toLowerCase().contains(_searchQuery.toLowerCase());
+          return matchCat && matchSuit && matchQuery;
         }).toList();
 
-        return Column(
-          children: [
-            _buildSearchBar(),
-            _buildSuitabilityFilter(),
-            _buildCategoryFilter(),
-            Expanded(
-              child: filtered.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No foods match your search.',
-                        style:
-                            TextStyle(fontFamily: 'Inter', color: _kMutedText),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding:
-                          const EdgeInsets.only(bottom: 24, top: 4),
-                      itemCount: filtered.length,
-                      itemBuilder: (context, i) =>
-                          _FoodCard(food: filtered[i]),
-                    ),
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(child: _buildSearchBar()),
+            SliverToBoxAdapter(child: _buildRecommendedSection()),
+            SliverToBoxAdapter(child: _buildCategoryChips()),
+            SliverToBoxAdapter(child: _buildSuitabilityChips()),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+                child: Text(
+                  '${filtered.length} foods',
+                  style: const TextStyle(fontFamily: 'Inter', fontSize: 12, color: _kMutedText),
+                ),
+              ),
             ),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (ctx, i) => _buildFoodCard(filtered[i]),
+                childCount: filtered.length,
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 96)),
           ],
         );
       },
@@ -391,1556 +473,932 @@ class _DietScreenState extends ConsumerState<DietScreen>
 
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      child: TextField(
+        onChanged: (v) => setState(() => _searchQuery = v),
+        style: const TextStyle(fontFamily: 'Inter', fontSize: 14, color: _kDarkText),
+        decoration: InputDecoration(
+          hintText: 'Search Cameroonian foods...',
+          hintStyle: const TextStyle(fontFamily: 'Inter', color: _kMutedText, fontSize: 14),
+          prefixIcon: const Icon(Icons.search, color: _kMutedText, size: 20),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kDivider)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kDivider)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _kPrimary, width: 1.5)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecommendedSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Row(
+            children: [
+              Text('Recommended for You', style: TextStyle(fontFamily: 'Outfit', fontSize: 17, fontWeight: FontWeight.bold, color: _kDarkText)),
+              Spacer(),
+              Text('PMOS-optimised', style: TextStyle(fontFamily: 'Inter', fontSize: 11, color: _kMutedText)),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 220,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: _kMeals.length,
+            itemBuilder: (ctx, i) => _buildMealCard(_kMeals[i]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMealCard(_RecommendedMeal meal) {
+    return Container(
+      width: 152,
+      margin: const EdgeInsets.only(right: 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(color: meal.gradient.first.withOpacity(0.35), blurRadius: 16, offset: const Offset(0, 6)),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Stack(
+          children: [
+            // Gradient background
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: meal.gradient,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+            // Decorative circles
+            Positioned(
+              top: -20,
+              right: -20,
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.1),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              left: -10,
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.06),
+                ),
+              ),
+            ),
+            // Icon
+            Positioned(
+              top: 20,
+              right: 16,
+              child: Icon(meal.icon, size: 52, color: Colors.white.withOpacity(0.85)),
+            ),
+            // Content
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Colors.black.withOpacity(0.55), Colors.transparent],
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.25),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        meal.badge,
+                        style: const TextStyle(fontFamily: 'Inter', fontSize: 9, color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      meal.name,
+                      style: const TextStyle(fontFamily: 'Outfit', fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    Text(
+                      meal.subtitle,
+                      style: TextStyle(fontFamily: 'Inter', fontSize: 11, color: Colors.white.withOpacity(0.8)),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.local_fire_department, size: 11, color: Colors.orangeAccent),
+                        const SizedBox(width: 3),
+                        Text(
+                          '${meal.calories} kcal',
+                          style: const TextStyle(fontFamily: 'Inter', fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChips() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 0, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Category', style: TextStyle(fontFamily: 'Outfit', fontSize: 14, fontWeight: FontWeight.w700, color: _kDarkText)),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 36,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: _categoryLabels.entries.map((e) => _buildFilterChip(
+                label: e.value,
+                selected: _selectedCategory == e.key,
+                onTap: () => setState(() => _selectedCategory = e.key),
+              )).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuitabilityChips() {
+    const suitabilities = {'All': 'All', 'highly_recommended': 'Highly Rec.', 'moderate': 'Moderate', 'limit': 'Limit', 'avoid': 'Avoid'};
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 0, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Suitability', style: TextStyle(fontFamily: 'Outfit', fontSize: 14, fontWeight: FontWeight.w700, color: _kDarkText)),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 36,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: suitabilities.entries.map((e) {
+                Color chipColor = _kPrimary;
+                if (e.key == 'highly_recommended') chipColor = const Color(0xFF2D6A4F);
+                if (e.key == 'moderate') chipColor = const Color(0xFFB7791F);
+                if (e.key == 'limit') chipColor = Colors.orange;
+                if (e.key == 'avoid') chipColor = Colors.red;
+                return _buildFilterChip(
+                  label: e.value,
+                  selected: _selectedSuitability == e.key,
+                  onTap: () => setState(() => _selectedSuitability = e.key),
+                  selectedColor: chipColor,
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+    Color? selectedColor,
+  }) {
+    final color = selectedColor ?? _kPrimary;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? color : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: selected ? color : _kDivider),
+          boxShadow: selected
+              ? [BoxShadow(color: color.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))]
+              : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : _kMutedText,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFoodCard(FoodItem food) {
+    Color suitabilityColor = _kTeal;
+    String suitabilityLabel = food.suitability;
+    if (food.suitability == 'highly_recommended') {
+      suitabilityColor = const Color(0xFF2D6A4F);
+      suitabilityLabel = 'Highly Recommended';
+    } else if (food.suitability == 'moderate') {
+      suitabilityColor = const Color(0xFFB7791F);
+      suitabilityLabel = 'Moderate';
+    } else if (food.suitability == 'limit') {
+      suitabilityColor = Colors.orange;
+      suitabilityLabel = 'Limit';
+    } else if (food.suitability == 'avoid') {
+      suitabilityColor = Colors.red;
+      suitabilityLabel = 'Avoid';
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _kDivider),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: suitabilityColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.restaurant, color: suitabilityColor, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(food.name, style: const TextStyle(fontFamily: 'Outfit', fontSize: 14, fontWeight: FontWeight.bold, color: _kDarkText)),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: suitabilityColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        suitabilityLabel,
+                        style: TextStyle(fontFamily: 'Inter', fontSize: 10, fontWeight: FontWeight.w700, color: suitabilityColor),
+                      ),
+                    ),
+                  ],
+                ),
+                if (food.localName.isNotEmpty && food.localName != food.name)
+                  Text(food.localName, style: const TextStyle(fontFamily: 'Inter', fontSize: 12, color: _kMutedText, fontStyle: FontStyle.italic)),
+                const SizedBox(height: 4),
+                Text(food.explanation, style: const TextStyle(fontFamily: 'Inter', fontSize: 12, color: _kBodyText), maxLines: 2, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Meal Log Tab ──────────────────────────────────────────────────────────
+
+  Widget _buildMealLogTab() {
+    final mealState = ref.watch(mealLogStateNotifierProvider);
+    final today = DateTime.now();
+    final todayMeals = mealState.mealLogs.where((m) =>
+        m.timestamp.year == today.year && m.timestamp.month == today.month && m.timestamp.day == today.day).toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildAddMealCard(),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              const Text("Today's Meals", style: TextStyle(fontFamily: 'Outfit', fontSize: 17, fontWeight: FontWeight.bold, color: _kDarkText)),
+              const Spacer(),
+              Text('${todayMeals.length} logged', style: const TextStyle(fontFamily: 'Inter', fontSize: 12, color: _kMutedText)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (mealState.isLoading)
+            const Center(child: CircularProgressIndicator(color: _kPrimary))
+          else if (todayMeals.isEmpty)
+            _buildEmptyMeals()
+          else
+            ...todayMeals.map((m) => _buildMealLogItem(m)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddMealCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _kDivider),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 3))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _kPrimary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.add_circle_outline, color: _kPrimary, size: 20),
+              ),
+              const SizedBox(width: 10),
+              const Text('Log a Meal', style: TextStyle(fontFamily: 'Outfit', fontSize: 16, fontWeight: FontWeight.bold, color: _kDarkText)),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Meal Type Selector
+          SizedBox(
+            height: 38,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: _mealTypeOptions.map((type) => GestureDetector(
+                onTap: () => setState(() => _selectedMealType = type),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _selectedMealType == type ? _kPrimary : _kProgressTrack,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    type,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _selectedMealType == type ? Colors.white : _kMutedText,
+                    ),
+                  ),
+                ),
+              )).toList(),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Food Name (required)
+          _buildInputField(
+            controller: _foodNameController,
+            label: 'Food Name *',
+            hint: 'e.g. Ndolè with plantain',
+            icon: Icons.restaurant,
+            required: true,
+          ),
+          const SizedBox(height: 10),
+
+          // Optional nutrition row
+          const Text(
+            'Nutrition (optional)',
+            style: TextStyle(fontFamily: 'Inter', fontSize: 12, color: _kMutedText, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: _buildInputField(controller: _caloriesController, label: 'Calories', hint: 'kcal', icon: Icons.local_fire_department, numericOnly: true)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildInputField(controller: _proteinController, label: 'Protein', hint: 'g', icon: Icons.fitness_center, numericOnly: true)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildInputField(controller: _fiberController, label: 'Fiber', hint: 'g', icon: Icons.grass, numericOnly: true)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _buildInputField(controller: _waterController, label: 'Water (ml)', hint: '250', icon: Icons.water_drop, numericOnly: true),
+          const SizedBox(height: 16),
+
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _logMeal,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _kPrimary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Log Meal', style: TextStyle(fontFamily: 'Outfit', fontSize: 15, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    bool numericOnly = false,
+    bool required = false,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: numericOnly ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+      style: const TextStyle(fontFamily: 'Inter', fontSize: 13, color: _kDarkText),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(fontFamily: 'Inter', fontSize: 12, color: _kMutedText),
+        hintText: hint,
+        hintStyle: const TextStyle(fontFamily: 'Inter', fontSize: 12, color: _kDivider),
+        prefixIcon: Icon(icon, size: 16, color: _kMutedText),
+        filled: true,
+        fillColor: _kBg,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _kDivider)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _kDivider)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _kPrimary, width: 1.5)),
+      ),
+    );
+  }
+
+  Widget _buildEmptyMeals() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _kDivider),
+      ),
+      child: const Column(
+        children: [
+          Icon(Icons.restaurant_outlined, size: 40, color: _kMutedText),
+          SizedBox(height: 12),
+          Text('No meals logged today', style: TextStyle(fontFamily: 'Outfit', fontSize: 15, fontWeight: FontWeight.w600, color: _kMutedText)),
+          SizedBox(height: 4),
+          Text('Use the form above to log your first meal', style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: _kMutedText), textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMealLogItem(dynamic meal) {
+    final mealIcon = {
+      'Breakfast': Icons.free_breakfast,
+      'Lunch': Icons.lunch_dining,
+      'Dinner': Icons.dinner_dining,
+      'Snack': Icons.cookie,
+    }[meal.mealType] ?? Icons.restaurant;
+
+    return Dismissible(
+      key: Key(meal.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(color: Colors.red.shade400, borderRadius: BorderRadius.circular(14)),
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      onDismissed: (_) => ref.read(mealLogStateNotifierProvider.notifier).removeMealLog(meal.id),
       child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: _kDivider),
-          boxShadow: [
-            BoxShadow(
-              color: _kPrimary.withOpacity(0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 2))],
         ),
-        child: TextField(
-          decoration: InputDecoration(
-            hintText: 'Search Cameroonian foods…',
-            hintStyle: const TextStyle(
-                fontFamily: 'Inter', fontSize: 13, color: _kMutedText),
-            prefixIcon: const Icon(Icons.search_rounded,
-                color: _kMutedText, size: 20),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: _kPrimary, width: 1.5),
-            ),
-            contentPadding: const EdgeInsets.symmetric(vertical: 0),
-            suffixIcon: _searchQuery.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear_rounded,
-                        size: 16, color: _kMutedText),
-                    onPressed: () => setState(() => _searchQuery = ''),
-                  )
-                : null,
-          ),
-          onChanged: (q) => setState(() => _searchQuery = q),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSuitabilityFilter() {
-    const options = ['All', 'Good', 'Moderate', 'Limit'];
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        scrollDirection: Axis.horizontal,
-        children: options.map((option) {
-          final isSelected = _selectedSuitability == option;
-          late Color chipColor;
-          late Color textColor;
-          if (option == 'Good') {
-            chipColor = isSelected
-                ? AppTheme.glycemicLow
-                : AppTheme.glycemicLow.withOpacity(0.1);
-            textColor =
-                isSelected ? Colors.white : AppTheme.glycemicLow;
-          } else if (option == 'Moderate') {
-            chipColor = isSelected
-                ? AppTheme.glycemicMedium
-                : AppTheme.glycemicMedium.withOpacity(0.1);
-            textColor =
-                isSelected ? Colors.white : AppTheme.glycemicMedium;
-          } else if (option == 'Limit') {
-            chipColor = isSelected
-                ? AppTheme.glycemicHigh
-                : AppTheme.glycemicHigh.withOpacity(0.1);
-            textColor =
-                isSelected ? Colors.white : AppTheme.glycemicHigh;
-          } else {
-            chipColor = isSelected ? _kPrimary : _kProgressTrack;
-            textColor = isSelected ? Colors.white : _kBodyText;
-          }
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedSuitability = option),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                decoration: BoxDecoration(
-                  color: chipColor,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  option,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: textColor,
-                    letterSpacing: 0.2,
-                  ),
-                ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: _kPrimary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(11),
               ),
+              child: Icon(mealIcon, color: _kPrimary, size: 20),
             ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildCategoryFilter() {
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        scrollDirection: Axis.horizontal,
-        children: _categoryLabels.entries.map((entry) {
-          final isSelected = _selectedCategory == entry.key;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: () =>
-                  setState(() => _selectedCategory = entry.key),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                decoration: BoxDecoration(
-                  color: isSelected ? _kPrimary : Colors.white,
-                  borderRadius: BorderRadius.circular(999),
-                  border: isSelected
-                      ? null
-                      : Border.all(color: _kDivider),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: _kPrimary.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          )
-                        ]
-                      : null,
-                ),
-                child: Text(
-                  entry.value,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color:
-                        isSelected ? Colors.white : _kBodyText,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  // ── Meal Tracker tab ──────────────────────────────────────────────────────────
-
-  Widget _buildMealTracker() {
-    final mealState = ref.watch(mealLogStateNotifierProvider);
-    final today = DateTime.now();
-
-    final todayLogs = mealState.mealLogs.where((log) {
-      return log.timestamp.year == today.year &&
-          log.timestamp.month == today.month &&
-          log.timestamp.day == today.day;
-    }).toList();
-
-    double totalCals = 0;
-    double totalProtein = 0;
-    double totalFiber = 0;
-    double totalWater = 0;
-
-    for (final log in todayLogs) {
-      if (log.mealType == 'water') {
-        totalWater += log.waterMl;
-      } else {
-        totalCals += log.calories;
-        totalProtein += log.proteinGrams;
-        totalFiber += log.fiberGrams;
-        totalWater += log.waterMl;
-      }
-    }
-
-    final waterFraction = (totalWater / 2500).clamp(0.0, 1.0);
-
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Gradient summary card ──────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment(-0.8, -0.6),
-                end: Alignment(0.8, 0.6),
-                colors: [Color(0xFF5152B9), Color(0xFF6C6DD1)],
-              ),
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: _kPrimary.withOpacity(0.28),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  bottom: -28,
-                  right: -18,
-                  child: Transform.rotate(
-                    angle: 0.3,
-                    child: Icon(
-                      Icons.restaurant_rounded,
-                      size: 110,
-                      color: Colors.white.withOpacity(0.08),
-                    ),
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Text(
-                            "Today's Summary",
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          totalCals.toStringAsFixed(0),
-                          style: const TextStyle(
-                            fontFamily: 'Outfit',
-                            fontSize: 42,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            height: 1.0,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 7),
-                          child: Text(
-                            'kcal today',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 14,
-                              color: Color(0xFFE2DFFF),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        _buildMiniStat('Protein',
-                            '${totalProtein.toStringAsFixed(1)}g'),
-                        const SizedBox(width: 28),
-                        _buildMiniStat(
-                            'Fiber', '${totalFiber.toStringAsFixed(1)}g'),
-                        const SizedBox(width: 28),
-                        _buildMiniStat(
-                            'Water', '${totalWater.toStringAsFixed(0)}ml'),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 14),
-
-          // ── Hydration card ─────────────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: _kTealBg,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: _kTealBorder),
-                      ),
-                      child: const Icon(Icons.water_drop_outlined,
-                          color: _kTealDark, size: 18),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Hydration',
-                          style: TextStyle(
-                            fontFamily: 'Outfit',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: _kDarkText,
-                          ),
-                        ),
-                        Text(
-                          '${totalWater.toStringAsFixed(0)} / 2500 ml',
-                          style: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 12,
-                              color: _kMutedText),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    _buildWaterButton('+250ml', 250),
-                    const SizedBox(width: 8),
-                    _buildWaterButton('+500ml', 500),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: SizedBox(
-                    height: 6,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        const ColoredBox(color: _kProgressTrack),
-                        FractionallySizedBox(
-                          widthFactor: waterFraction,
-                          alignment: Alignment.centerLeft,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: _kTeal,
-                              borderRadius: BorderRadius.circular(999),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _kTeal.withOpacity(0.4),
-                                  blurRadius: 6,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // ── Today's meals ──────────────────────────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Today's Meals",
-                style: TextStyle(
-                  fontFamily: 'Outfit',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                  color: _kDarkText,
-                ),
-              ),
-              GestureDetector(
-                onTap: () => _showAddMealDialog(context),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: _kPrimary,
-                    borderRadius: BorderRadius.circular(999),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _kPrimary.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.add, color: Colors.white, size: 14),
-                      SizedBox(width: 4),
-                      Text(
-                        'Log Meal',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          todayLogs.isEmpty
-              ? Container(
-                  padding: const EdgeInsets.symmetric(vertical: 32),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _kDivider),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: const BoxDecoration(
-                          color: _kProgressTrack,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.restaurant_outlined,
-                            color: _kMutedText, size: 22),
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'No meals logged yet',
-                        style: TextStyle(
-                          fontFamily: 'Outfit',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: _kBodyText,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Tap "Log Meal" to track your nutrition',
-                        style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 12,
-                            color: _kMutedText),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: todayLogs.length,
-                  itemBuilder: (context, index) {
-                    final log = todayLogs[index];
-                    final isWater = log.mealType == 'water';
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: isWater
-                                  ? _kTealBg
-                                  : const Color(0x1A5152B9),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isWater
-                                    ? _kTealBorder
-                                    : const Color(0x335152B9),
-                              ),
-                            ),
-                            child: Icon(
-                              isWater
-                                  ? Icons.water_drop_outlined
-                                  : Icons.restaurant_outlined,
-                              color: isWater ? _kTealDark : _kPrimary,
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  isWater ? 'Hydration' : log.foodName,
-                                  style: const TextStyle(
-                                    fontFamily: 'Outfit',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                    color: _kDarkText,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  isWater
-                                      ? '${log.waterMl.toStringAsFixed(0)} ml water'
-                                      : '${log.mealType.toUpperCase()} • ${log.calories.toStringAsFixed(0)} kcal • P: ${log.proteinGrams}g • F: ${log.fiberGrams}g',
-                                  style: const TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 11.5,
-                                      color: _kMutedText),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded,
-                                size: 18, color: AppTheme.glycemicHigh),
-                            onPressed: () => ref
-                                .read(mealLogStateNotifierProvider.notifier)
-                                .removeMealLog(log.id),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMiniStat(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontFamily: 'Outfit',
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            height: 1.1,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 11,
-            color: Color(0xFFE2DFFF),
-            letterSpacing: 0.3,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWaterButton(String label, double amount) {
-    return GestureDetector(
-      onTap: () {
-        ref.read(mealLogStateNotifierProvider.notifier).addMealLog(
-              mealType: 'water',
-              foodName: 'Water',
-              calories: 0,
-              proteinGrams: 0,
-              fiberGrams: 0,
-              waterMl: amount,
-              date: DateTime.now(),
-            );
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: _kTealBg,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: _kTealBorder),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: _kTealDark,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Add Meal dialog ───────────────────────────────────────────────────────────
-
-  void _showAddMealDialog(BuildContext context) {
-    final formKey = GlobalKey<FormState>();
-    final foodNameController = TextEditingController();
-    final calsController = TextEditingController();
-    final proteinController = TextEditingController();
-    final fiberController = TextEditingController();
-    final waterController = TextEditingController();
-    String selectedMealType = 'breakfast';
-    const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setS) => AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text(
-            'Log Meal',
-            style: TextStyle(
-                fontFamily: 'Outfit',
-                fontWeight: FontWeight.bold,
-                color: _kDarkText),
-          ),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
+            const SizedBox(width: 12),
+            Expanded(
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DropdownButtonFormField<String>(
-                    value: selectedMealType,
-                    decoration: InputDecoration(
-                      labelText: 'Meal Type',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                    ),
-                    items: mealTypes
-                        .map((t) => DropdownMenuItem(
-                            value: t, child: Text(t.toUpperCase())))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) setS(() => selectedMealType = val);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: foodNameController,
-                    decoration: InputDecoration(
-                      labelText: 'Food / Meal Name',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      hintText: 'e.g. Ndole with boiled plantain',
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                    ),
-                    validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Name required' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: calsController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Calories (kcal)',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      hintText: 'e.g. 350',
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                    ),
-                    validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: proteinController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          decoration: InputDecoration(
-                            labelText: 'Protein (g)',
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            hintText: '20',
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 12),
-                          ),
-                          validator: (v) =>
-                              (v == null || v.isEmpty) ? 'Required' : null,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextFormField(
-                          controller: fiberController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          decoration: InputDecoration(
-                            labelText: 'Fiber (g)',
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            hintText: '5',
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 12),
-                          ),
-                          validator: (v) =>
-                              (v == null || v.isEmpty) ? 'Required' : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: waterController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Water (ml) — optional',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      hintText: '300',
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                    ),
-                  ),
+                  Text(meal.foodName, style: const TextStyle(fontFamily: 'Outfit', fontSize: 14, fontWeight: FontWeight.bold, color: _kDarkText)),
+                  Text(meal.mealType, style: const TextStyle(fontFamily: 'Inter', fontSize: 12, color: _kMutedText)),
                 ],
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel',
-                  style: TextStyle(color: _kMutedText)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _kPrimary,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(80, 40),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () async {
-                if (formKey.currentState?.validate() ?? false) {
-                  await ref
-                      .read(mealLogStateNotifierProvider.notifier)
-                      .addMealLog(
-                        mealType: selectedMealType,
-                        foodName: foodNameController.text,
-                        calories: double.parse(calsController.text),
-                        proteinGrams: double.parse(proteinController.text),
-                        fiberGrams: double.parse(fiberController.text),
-                        waterMl:
-                            double.tryParse(waterController.text) ?? 0.0,
-                        date: DateTime.now(),
-                      );
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Meal logged successfully!'),
-                        backgroundColor: AppTheme.glycemicLow,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                    );
-                  }
-                }
-              },
-              child: const Text('Save',
-                  style: TextStyle(
-                      fontFamily: 'Inter', fontWeight: FontWeight.w600)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Dietary Advice tab ────────────────────────────────────────────────────────
-
-  Widget _buildDietaryAdvice() {
-    final adviceAsync = ref.watch(dietaryAdviceProvider);
-
-    return adviceAsync.when(
-      loading: () =>
-          const Center(child: CircularProgressIndicator(color: _kPrimary)),
-      error: (e, _) => Center(child: Text('Error loading advice: $e')),
-      data: (sections) => ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        itemCount: sections.length,
-        itemBuilder: (context, i) =>
-            _AdviceSectionWidget(section: sections[i]),
-      ),
-    );
-  }
-
-  // ── AI Kitchen Guide tab ──────────────────────────────────────────────────────
-
-  Widget _buildAiKitchenGuide() {
-    final recipe = _recipes[_selectedDish]!;
-
-    return Column(
-      children: [
-        // Dish selector
-        Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-            decoration: BoxDecoration(
-              color: _kBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _kDivider),
-            ),
-            child: DropdownButton<String>(
-              value: _selectedDish,
-              isExpanded: true,
-              underline: const SizedBox(),
-              icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                  color: _kMutedText, size: 20),
-              style: const TextStyle(
-                fontFamily: 'Outfit',
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: _kDarkText,
-              ),
-              onChanged: (val) {
-                if (val != null) setState(() => _selectedDish = val);
-              },
-              items: _recipes.keys
-                  .map((key) => DropdownMenuItem<String>(
-                        value: key,
-                        child: Text(
-                          _recipes[key]!['name'] as String,
-                          style: const TextStyle(
-                              fontFamily: 'Outfit',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: _kDarkText),
-                        ),
-                      ))
-                  .toList(),
-            ),
-          ),
-        ),
-
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // ── Recipe glass card ──────────────────────────────────────────
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: _kGlass,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: _kGlassBorder),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _kPrimary.withOpacity(0.07),
-                          blurRadius: 20,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: _kTealBg,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.menu_book_outlined,
-                                  size: 11, color: _kTealDark),
-                              SizedBox(width: 4),
-                              Text(
-                                'RECIPE',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: _kTealDark,
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          recipe['name'] as String,
-                          style: const TextStyle(
-                            fontFamily: 'Outfit',
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: _kPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        _buildRecipeSection(
-                          'Ingredients',
-                          recipe['ingredients'] as String,
-                          Icons.list_alt_outlined,
-                        ),
-                        const SizedBox(height: 12),
-                        _buildRecipeSection(
-                          'Preparation',
-                          recipe['instructions'] as String,
-                          Icons.soup_kitchen_outlined,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // ── PMOS optimisations gradient banner ─────────────────────────
+            if (meal.calories > 0)
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF5152B9), Color(0xFF6C6DD1)],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _kPrimary.withOpacity(0.28),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      bottom: -22,
-                      right: -22,
-                      child: Transform.rotate(
-                        angle: 0.2,
-                        child: Icon(
-                          Icons.tips_and_updates_outlined,
-                          size: 90,
-                          color: Colors.white.withOpacity(0.12),
-                        ),
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: BackdropFilter(
-                            filter:
-                                ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: const Text(
-                                'PMOS Optimisations',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                  letterSpacing: 0.6,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          recipe['optimizations'] as String,
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 13,
-                            height: 1.6,
-                            color: Color(0xFFE2DFFF),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // ── AI chat section ────────────────────────────────────────────
-              Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: _kTealBg,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: _kTealBorder),
-                    ),
-                    child: const Icon(Icons.psychology_outlined,
-                        color: _kTealDark, size: 18),
-                  ),
-                  const SizedBox(width: 10),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Ask AI Cooking Assistant',
-                        style: TextStyle(
-                          fontFamily: 'Outfit',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                          color: _kDarkText,
-                        ),
-                      ),
-                      Text(
-                        'Powered by Google Gemini',
-                        style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 11,
-                            color: _kMutedText),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Chat history
-              Container(
-                constraints: const BoxConstraints(
-                    minHeight: 120, maxHeight: 240),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _kDivider),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: _chatMessages.isEmpty
-                    ? const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Text(
-                            'Ask about ingredients, cooking methods,\nor PMOS-friendly substitutions',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 13,
-                              color: _kMutedText,
-                              height: 1.5,
-                            ),
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: _chatMessages.length,
-                        itemBuilder: (context, index) {
-                          final msg = _chatMessages[index];
-                          final isUser = msg['role'] == 'user';
-                          return Align(
-                            alignment: isUser
-                                ? Alignment.centerRight
-                                : Alignment.centerLeft,
-                            child: Container(
-                              margin:
-                                  const EdgeInsets.symmetric(vertical: 4),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 9),
-                              constraints:
-                                  const BoxConstraints(maxWidth: 280),
-                              decoration: BoxDecoration(
-                                color: isUser
-                                    ? _kPrimary
-                                    : _kProgressTrack,
-                                borderRadius: BorderRadius.only(
-                                  topLeft: const Radius.circular(14),
-                                  topRight: const Radius.circular(14),
-                                  bottomLeft: Radius.circular(
-                                      isUser ? 14 : 4),
-                                  bottomRight: Radius.circular(
-                                      isUser ? 4 : 14),
-                                ),
-                              ),
-                              child: Text(
-                                msg['message'] ?? '',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 13,
-                                  height: 1.4,
-                                  color: isUser
-                                      ? Colors.white
-                                      : _kBodyText,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-
-              if (_isAiTyping) ...[
-                const SizedBox(height: 8),
-                const Row(
-                  children: [
-                    SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 1.5,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(_kPrimary),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'AI Chef is typing…',
-                      style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 11,
-                          color: _kMutedText),
-                    ),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 10),
-
-              // Chat input
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: const Color(0x15EB505E),
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: _kDivider),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _kPrimary.withOpacity(0.05),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
                 ),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _chatController,
-                        decoration: const InputDecoration(
-                          hintText: 'Ask about this recipe…',
-                          hintStyle: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 13,
-                              color: _kMutedText),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                        ),
-                        onSubmitted: (_) => _sendChatMessage(),
-                        style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 13,
-                            color: _kDarkText),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: GestureDetector(
-                        onTap: _sendChatMessage,
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: const BoxDecoration(
-                            color: _kPrimary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.send_rounded,
-                              color: Colors.white, size: 16),
-                        ),
-                      ),
-                    ),
+                    const Icon(Icons.local_fire_department, size: 12, color: Color(0xFFEB505E)),
+                    const SizedBox(width: 3),
+                    Text('${meal.calories.round()} kcal', style: const TextStyle(fontFamily: 'Inter', fontSize: 11, color: Color(0xFFEB505E), fontWeight: FontWeight.w700)),
                   ],
                 ),
               ),
-
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecipeSection(
-      String title, String content, IconData icon) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 13, color: _kMutedText),
-            const SizedBox(width: 5),
-            Text(
-              title.toUpperCase(),
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: _kMutedText,
-                letterSpacing: 0.8,
-              ),
-            ),
           ],
         ),
-        const SizedBox(height: 5),
-        Text(
-          content,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 13,
-            height: 1.5,
-            color: _kBodyText,
-          ),
+      ),
+    );
+  }
+
+  // ── AI Chef Tab ───────────────────────────────────────────────────────────
+
+  Widget _buildAiChefTab() {
+    return Column(
+      children: [
+        if (_aiApiKey.isEmpty) _buildApiKeyBanner(),
+        Expanded(
+          child: _chatMessages.isEmpty
+              ? _buildChatWelcome()
+              : ListView.builder(
+                  controller: _chatScrollController,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  itemCount: _chatMessages.length,
+                  itemBuilder: (ctx, i) => _buildChatBubble(_chatMessages[i]),
+                ),
         ),
+        _buildChatInput(),
       ],
     );
   }
-}
 
-// ─── Food Card ────────────────────────────────────────────────────────────────
-
-class _FoodCard extends StatelessWidget {
-  final FoodItem food;
-  const _FoodCard({required this.food});
-
-  Color get _accentColor {
-    switch (food.suitability) {
-      case 'Good':
-        return AppTheme.glycemicLow;
-      case 'Moderate':
-        return AppTheme.glycemicMedium;
-      case 'Limit':
-        return AppTheme.glycemicHigh;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Color get _badgeBg {
-    switch (food.suitability) {
-      case 'Good':
-        return AppTheme.glycemicLow.withOpacity(0.1);
-      case 'Moderate':
-        return AppTheme.glycemicMedium.withOpacity(0.1);
-      case 'Limit':
-        return AppTheme.glycemicHigh.withOpacity(0.1);
-      default:
-        return Colors.grey.withOpacity(0.1);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildApiKeyBanner() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+        color: const Color(0xFFFFF3CD),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFD048)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber, color: Color(0xFFB7791F), size: 18),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('AI Key Required', style: TextStyle(fontFamily: 'Outfit', fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFB7791F))),
+                Text('Get a free Groq API key at console.groq.com', style: TextStyle(fontFamily: 'Inter', fontSize: 11, color: Color(0xFF92400E))),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: _showApiKeyDialog,
+            style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+            child: const Text('Set Key', style: TextStyle(fontSize: 12, color: Color(0xFF5152B9), fontWeight: FontWeight.bold)),
           ),
         ],
       ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          leading: Container(
-            width: 4,
-            height: 44,
-            margin: const EdgeInsets.symmetric(vertical: 4),
-            decoration: BoxDecoration(
-              color: _accentColor,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          tilePadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-          childrenPadding:
-              const EdgeInsets.fromLTRB(14, 0, 14, 14),
-          title: Text(
-            food.name,
-            style: const TextStyle(
-              fontFamily: 'Outfit',
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _kDarkText,
-            ),
-          ),
-          subtitle: Text(
-            food.localName,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 12,
-              fontStyle: FontStyle.italic,
-              color: _kMutedText,
-            ),
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _badgeBg,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  food.suitability,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: _accentColor,
-                    letterSpacing: 0.2,
-                  ),
-                ),
+    );
+  }
+
+  void _showApiKeyDialog() {
+    final ctrl = TextEditingController(text: _aiApiKey);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Set Groq API Key', style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: ctrl,
+              decoration: const InputDecoration(
+                labelText: 'API Key (gsk_...)',
+                border: OutlineInputBorder(),
+                hintText: 'gsk_xxxxxxxxxxxx',
               ),
-              const SizedBox(width: 4),
-              const Icon(Icons.keyboard_arrow_down_rounded,
-                  color: _kMutedText, size: 18),
-            ],
+              obscureText: true,
+            ),
+            const SizedBox(height: 8),
+            const Text('Get a free key at console.groq.com', style: TextStyle(fontSize: 12, color: _kMutedText)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: _kPrimary),
+            onPressed: () async {
+              await AIService().saveApiKey(ctrl.text.trim());
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (mounted) setState(() => _aiApiKey = ctrl.text.trim());
+            },
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChatWelcome() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
-                color: _kBg,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                food.explanation,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 13,
-                  height: 1.5,
-                  color: _kBodyText,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF5152B9), Color(0xFF6C6DD1)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: _kPrimary.withOpacity(0.35), blurRadius: 20, offset: const Offset(0, 8))],
               ),
+              child: const Icon(Icons.soup_kitchen, size: 36, color: Colors.white),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'PMOS Chef',
+              style: TextStyle(fontFamily: 'Outfit', fontSize: 22, fontWeight: FontWeight.bold, color: _kDarkText),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Ask me anything about Cameroonian foods, recipes, and how to eat well for PMOS management.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontFamily: 'Inter', fontSize: 14, color: _kMutedText),
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                'Is ndolè good for PMOS?',
+                'Low-GI Cameroonian meals?',
+                'How to cook eru healthily?',
+                'Foods to avoid with PCOS?',
+              ].map((q) => GestureDetector(
+                onTap: () {
+                  _chatController.text = q;
+                  _sendMessage();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _kPrimary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: _kPrimary.withOpacity(0.2)),
+                  ),
+                  child: Text(q, style: const TextStyle(fontFamily: 'Inter', fontSize: 12, color: _kPrimary, fontWeight: FontWeight.w600)),
+                ),
+              )).toList(),
             ),
           ],
         ),
       ),
     );
   }
-}
 
-// ─── Advice Section ───────────────────────────────────────────────────────────
+  Widget _buildChatBubble(Map<String, String> message) {
+    final isUser = message['role'] == 'user';
+    final content = message['content'] ?? '';
+    final isEmpty = content.isEmpty && !isUser;
 
-class _AdviceSectionWidget extends StatelessWidget {
-  final AdviceSection section;
-  const _AdviceSectionWidget({required this.section});
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+        margin: EdgeInsets.only(
+          bottom: 12,
+          left: isUser ? 40 : 0,
+          right: isUser ? 0 : 40,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: isUser
+              ? const LinearGradient(colors: [Color(0xFF5152B9), Color(0xFF6C6DD1)], begin: Alignment.topLeft, end: Alignment.bottomRight)
+              : null,
+          color: isUser ? null : Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isUser ? 16 : 4),
+            bottomRight: Radius.circular(isUser ? 4 : 16),
+          ),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, 2))],
+          border: isUser ? null : Border.all(color: _kDivider),
+        ),
+        child: isEmpty
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(width: 4),
+                  ...List.generate(3, (i) => _buildTypingDot(i)),
+                ],
+              )
+            : Text(
+                content,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  color: isUser ? Colors.white : _kDarkText,
+                  height: 1.5,
+                ),
+              ),
+      ),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildTypingDot(int index) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 500 + index * 200),
+      builder: (ctx, v, _) => Container(
+        width: 6,
+        height: 6,
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        decoration: BoxDecoration(
+          color: _kMutedText.withOpacity(0.4 + v * 0.6),
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatInput() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: _kDivider.withOpacity(0.6))),
+      ),
+      child: Row(
         children: [
-          Text(
-            section.title,
-            style: const TextStyle(
-              fontFamily: 'Outfit',
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: _kPrimary,
+          Expanded(
+            child: TextField(
+              controller: _chatController,
+              maxLines: null,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => _sendMessage(),
+              style: const TextStyle(fontFamily: 'Inter', fontSize: 14, color: _kDarkText),
+              decoration: InputDecoration(
+                hintText: 'Ask about any Cameroonian meal...',
+                hintStyle: const TextStyle(fontFamily: 'Inter', fontSize: 13, color: _kMutedText),
+                filled: true,
+                fillColor: _kBg,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: const BorderSide(color: _kDivider)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: const BorderSide(color: _kDivider)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: const BorderSide(color: _kPrimary, width: 1.5)),
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            section.description,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 13,
-              color: _kMutedText,
-              height: 1.4,
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: _isAiTyping ? null : _sendMessage,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: _isAiTyping
+                    ? null
+                    : const LinearGradient(colors: [Color(0xFF5152B9), Color(0xFF6C6DD1)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                color: _isAiTyping ? _kProgressTrack : null,
+                shape: BoxShape.circle,
+                boxShadow: _isAiTyping ? [] : [BoxShadow(color: _kPrimary.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 3))],
+              ),
+              child: Icon(
+                _isAiTyping ? Icons.hourglass_empty : Icons.send_rounded,
+                color: _isAiTyping ? _kMutedText : Colors.white,
+                size: 18,
+              ),
             ),
           ),
-          const SizedBox(height: 10),
-          ...section.cards.map((card) => _AdviceCardWidget(card: card)),
-          const SizedBox(height: 4),
-          const Divider(color: _kDivider),
         ],
       ),
     );
   }
-}
 
-class _AdviceCardWidget extends StatelessWidget {
-  final AdviceCard card;
-  const _AdviceCardWidget({required this.card});
+  // ── Dietary Advice Tab ────────────────────────────────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildDietaryAdviceTab() {
+    final adviceAsync = ref.watch(dietaryAdviceProvider);
+    return adviceAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: _kPrimary)),
+      error: (e, _) => Center(child: Text('Error: $e')),
+      data: (sections) => ListView.builder(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
+        itemCount: sections.length,
+        itemBuilder: (ctx, si) {
+          final section = sections[si];
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (si > 0) const SizedBox(height: 20),
+              Text(section.title, style: const TextStyle(fontFamily: 'Outfit', fontSize: 18, fontWeight: FontWeight.bold, color: _kDarkText)),
+              const SizedBox(height: 4),
+              Text(section.description, style: const TextStyle(fontFamily: 'Inter', fontSize: 13, color: _kMutedText)),
+              const SizedBox(height: 12),
+              ...section.cards.map((card) => _buildAdviceCard(card)),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAdviceCard(AdviceCard card) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _kDivider),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          tilePadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          childrenPadding:
-              const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           leading: Container(
-            width: 36,
-            height: 36,
-            decoration: const BoxDecoration(
-              color: Color(0x1A5152B9),
-              shape: BoxShape.circle,
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFF00696A), Color(0xFF45A8A9)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.eco_outlined,
-                color: _kPrimary, size: 18),
+            child: const Icon(Icons.tips_and_updates, color: Colors.white, size: 20),
           ),
-          title: Text(
-            card.title,
-            style: const TextStyle(
-              fontFamily: 'Outfit',
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _kDarkText,
-            ),
-          ),
+          title: Text(card.title, style: const TextStyle(fontFamily: 'Outfit', fontSize: 14, fontWeight: FontWeight.bold, color: _kDarkText)),
           children: [
-            Text(
-              card.body,
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 13,
-                height: 1.6,
-                color: _kBodyText,
-              ),
-            ),
+            Text(card.body, style: const TextStyle(fontFamily: 'Inter', fontSize: 13, color: _kBodyText, height: 1.6)),
             if (card.foodExamples.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
-                children: card.foodExamples
-                    .map(
-                      (food) => Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0x1A5152B9),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          food,
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: _kPrimary,
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
+                children: card.foodExamples.map((e) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _kTealBg,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: _kTealBorder),
+                  ),
+                  child: Text(e, style: const TextStyle(fontFamily: 'Inter', fontSize: 11, color: _kTealDark, fontWeight: FontWeight.w600)),
+                )).toList(),
               ),
             ],
           ],

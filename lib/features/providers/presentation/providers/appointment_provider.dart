@@ -78,7 +78,7 @@ class AppointmentNotifier extends StateNotifier<AppointmentState> {
     }
   }
 
-  Future<void> bookAppointment({
+  Future<String> bookAppointment({
     required String specialistName,
     required String specialistTitle,
     required String consultationType,
@@ -100,9 +100,11 @@ class AppointmentNotifier extends StateNotifier<AppointmentState> {
         avatarColorValue: avatarColorValue,
         clientUpdatedTimestamp: DateTime.now(),
       );
+
       await _repository.saveAppointment(entity);
       await NotificationService().scheduleAppointmentReminder(entity);
       await loadAppointments();
+      return id;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: 'Failed to book appointment: $e');
       rethrow;

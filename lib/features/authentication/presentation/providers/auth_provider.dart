@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../domain/entities/user_entity.dart';
@@ -9,7 +11,6 @@ import '../../domain/usecases/verify_otp.dart';
 import '../../data/datasources/auth_local_datasource.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
-import '../../data/models/user_model.dart';
 import '../../../../core/notifications/notification_service.dart';
 
 final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
@@ -110,7 +111,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = await _authRepository.getCurrentUser();
       if (user != null) {
         state = AuthAuthenticated(user);
-        // Register token
         NotificationService().registerFcmToken(user.uid);
       } else {
         state = const AuthUnauthenticated();
@@ -151,7 +151,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         smsCode: smsCode,
       );
       state = AuthAuthenticated(user);
-      // Register token
       NotificationService().registerFcmToken(user.uid);
     } catch (e) {
       state = AuthError('Code validation error: ${e.toString()}');
@@ -205,11 +204,98 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> saveSpecialistProfile({
+    required String specialty,
+    required String hospitalClinic,
+    required int yearsExperience,
+    required String licenseNumber,
+  }) async {
+    final currentState = state;
+    if (currentState is AuthAuthenticated) {
+      final updatedUser = currentState.user.copyWith(
+        specialty: specialty,
+        hospitalClinic: hospitalClinic,
+        yearsExperience: yearsExperience,
+        licenseNumber: licenseNumber,
+        isOnboardingCompleted: true,
+      );
+      await _localDataSource.setOnboardingCompleted(true);
+      await _authRepository.saveUserProfile(updatedUser);
+      state = AuthAuthenticated(updatedUser);
+    }
+  }
+
+  Future<void> updateDisplayName(String newName) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+
+    try {
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      await firebaseUser?.updateDisplayName(newName);
+
+      final updatedUser = currentState.user.copyWith(displayName: newName);
+      await _authRepository.saveUserProfile(updatedUser);
+      state = AuthAuthenticated(updatedUser);
+    } catch (e) {
+      state = AuthError('Failed to update name: $e');
+      state = currentState;
+    }
+  }
+
+  Future<void> updateEmail(String newEmail, String currentPassword) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+
+    try {
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null) return;
+
+      // Re-authenticate before email change
+      final credential = EmailAuthProvider.credential(
+        email: firebaseUser.email ?? '',
+        password: currentPassword,
+      );
+      await firebaseUser.reauthenticateWithCredential(credential);
+      await firebaseUser.verifyBeforeUpdateEmail(newEmail);
+
+      final updatedUser = currentState.user.copyWith(email: newEmail);
+      await _authRepository.saveUserProfile(updatedUser);
+      state = AuthAuthenticated(updatedUser);
+    } catch (e) {
+      state = AuthError('Failed to update email: $e');
+      state = currentState;
+    }
+  }
+
+  Future<String?> uploadProfilePhoto(String filePath) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return null;
+
+    try {
+      final uid = currentState.user.uid;
+      final ref = FirebaseStorage.instance.ref().child('users/$uid/avatar.jpg');
+      final uploadTask = await ref.putFile(File(filePath));
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      await firebaseUser?.updatePhotoURL(downloadUrl);
+
+      final updatedUser = currentState.user.copyWith(photoUrl: downloadUrl);
+      await _authRepository.saveUserProfile(updatedUser);
+      state = AuthAuthenticated(updatedUser);
+
+      return downloadUrl;
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<void> signUpWithEmailAndPassword({
     required String name,
     required String email,
     required String phone,
     required String password,
+    String role = 'patient',
   }) async {
     state = const AuthLoading();
     try {
@@ -218,9 +304,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         email: email,
         phone: phone,
         password: password,
+        role: role,
       );
       state = AuthAuthenticated(user);
-      // Register token
       NotificationService().registerFcmToken(user.uid);
     } catch (e) {
       state = AuthError('Registration error: $e');
@@ -238,7 +324,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         password: password,
       );
       state = AuthAuthenticated(user);
-      // Register token
       NotificationService().registerFcmToken(user.uid);
     } catch (e) {
       state = AuthError('Sign in error: $e');
@@ -250,7 +335,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final user = await _authRepository.signInWithGoogle();
       state = AuthAuthenticated(user);
-      // Register token
       NotificationService().registerFcmToken(user.uid);
     } catch (e) {
       state = AuthError('Google Sign-In failed: $e');
@@ -264,6 +348,56 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = const AuthUnauthenticated();
     } catch (e) {
       state = AuthError('Password reset failed: $e');
+    }
+  }
+
+  Future<void> saveSkinProfile({
+    required String severity,
+    required List<String> affectedAreas,
+  }) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+    final updated = currentState.user.copyWith(
+      skinAcneSeverity: severity,
+      skinAffectedAreas: affectedAreas,
+    );
+    await _authRepository.saveUserProfile(updated);
+    state = AuthAuthenticated(updated);
+  }
+
+  Future<void> saveConnectedApps({
+    required bool syncHeartRate,
+    required bool syncDailySteps,
+    required bool syncBloodGlucose,
+    required bool googleFitConnected,
+  }) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+    final updated = currentState.user.copyWith(
+      syncHeartRate: syncHeartRate,
+      syncDailySteps: syncDailySteps,
+      syncBloodGlucose: syncBloodGlucose,
+      googleFitConnected: googleFitConnected,
+    );
+    await _authRepository.saveUserProfile(updated);
+    state = AuthAuthenticated(updated);
+  }
+
+  Future<void> updateSettings({
+    required bool biometricLockEnabled,
+    required bool notificationsEnabled,
+  }) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+    try {
+      final updated = currentState.user.copyWith(
+        biometricLockEnabled: biometricLockEnabled,
+        notificationsEnabled: notificationsEnabled,
+      );
+      await _authRepository.saveUserProfile(updated);
+      state = AuthAuthenticated(updated);
+    } catch (e) {
+      state = AuthError('Settings update failed: $e');
     }
   }
 
